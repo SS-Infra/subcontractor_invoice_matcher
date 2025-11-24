@@ -6,11 +6,11 @@ interface Props {
 }
 
 const inputStyle: React.CSSProperties = {
-  padding: "0.5rem 0.8rem",
+  padding: "0.55rem 0.85rem",
   borderRadius: "0.8rem",
   border: "1px solid #1f2937",
   backgroundColor: "#020617",
-  color: "#e5e7eb",
+  color: "#f9fafb",
   fontSize: "0.9rem",
   width: "100%",
 };
@@ -18,18 +18,18 @@ const inputStyle: React.CSSProperties = {
 const labelStyle: React.CSSProperties = {
   fontSize: "0.8rem",
   fontWeight: 500,
-  color: "#9ca3af",
+  color: "#cbd5f5",
 };
 
 const buttonStyle: React.CSSProperties = {
-  padding: "0.65rem 1.2rem",
+  padding: "0.7rem 1.4rem",
   borderRadius: "999px",
   border: "none",
   background:
     "linear-gradient(135deg, rgb(59,130,246), rgb(56,189,248))",
   color: "#f9fafb",
   fontWeight: 600,
-  fontSize: "0.9rem",
+  fontSize: "0.95rem",
   cursor: "pointer",
 };
 
@@ -67,7 +67,7 @@ const InvoiceUpload: React.FC<Props> = ({ onUploaded }) => {
       style={{
         display: "grid",
         gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
-        gap: "0.9rem 1.2rem",
+        gap: "1rem 1.25rem",
       }}
     >
       <div>
@@ -117,10 +117,10 @@ const InvoiceUpload: React.FC<Props> = ({ onUploaded }) => {
           style={{
             gridColumn: "1 / -1",
             fontSize: "0.8rem",
-            color: "#fca5a5",
+            color: "#fecaca",
             backgroundColor: "#450a0a",
             borderRadius: "0.6rem",
-            padding: "0.4rem 0.6rem",
+            padding: "0.45rem 0.65rem",
           }}
         >
           {error}
@@ -130,7 +130,7 @@ const InvoiceUpload: React.FC<Props> = ({ onUploaded }) => {
         style={{
           gridColumn: "1 / -1",
           textAlign: "right",
-          marginTop: "0.25rem",
+          marginTop: "0.2rem",
         }}
       >
         <button type="submit" style={buttonStyle} disabled={loading}>

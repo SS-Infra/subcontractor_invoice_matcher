@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Float, Date, ForeignKey, Enum, Text
+from sqlalchemy import Column, Integer, String, Float, Date, ForeignKey, Enum, Text, Boolean
 from sqlalchemy.orm import relationship
 from .database import Base
 import enum
@@ -20,10 +20,15 @@ class MatchStatus(str, enum.Enum):
 
 
 class Subcontractor(Base):
+    """
+    This doubles as your operator table.
+    You can flag whether they hold an HGV license here.
+    """
     __tablename__ = "subcontractors"
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, unique=True, index=True)
     email = Column(String, unique=True, nullable=True)
+    has_hgv_license = Column(Boolean, default=False)
 
     invoices = relationship("Invoice", back_populates="subcontractor")
 

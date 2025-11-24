@@ -1,19 +1,32 @@
 version: "3.9"
+
 services:
   backend:
     build: ./backend
-    container_name: invoice-matcher-backend
-    environment:
-      - DATABASE_URL=sqlite+aiosqlite:///./db.sqlite3
-    volumes:
-      - ./backend/uploads:/app/uploads
+    container_name: sim-backend
     ports:
       - "8000:8000"
+    environment:
+      # Force DB into the persistent data folder
+      - DATABASE_URL=sqlite+aiosqlite:///./data/db.sqlite3
+    volumes:
+      # Persist DB + uploaded PDFs
+      - backend_data:/app/data
+    restart: unless-stopped
 
   frontend:
     build: ./frontend
-    container_name: invoice-matcher-frontend
+    container_name: sim-frontend
     ports:
       - "5173:5173"
+    environment:
+      # Usually not needed now – api.ts guesses based on window.location
+      # but you can uncomment and set explicitly if you want.
+      # - VITE_API_BASE=http://your-hostname-or-ip:8000
+      - NODE_ENV=production
     depends_on:
       - backend
+    restart: unless-stopped
+
+volumes:
+  backend_data:

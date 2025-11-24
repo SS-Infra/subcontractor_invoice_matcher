@@ -28,7 +28,8 @@ class InvoiceLineRead(InvoiceLineBase):
     yard_record_id: Optional[str] = None
 
     class Config:
-        orm_mode = True
+        # Pydantic v2 equivalent of orm_mode = True
+        from_attributes = True
 
 
 class InvoiceBase(BaseModel):
@@ -47,4 +48,4 @@ class InvoiceRead(InvoiceBase):
     lines: List[InvoiceLineRead]
 
     class Config:
-        orm_mode = True
+        from_attributes = True

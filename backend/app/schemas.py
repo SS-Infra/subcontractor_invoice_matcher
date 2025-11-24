@@ -4,33 +4,7 @@ from pydantic import BaseModel
 from .models import RoleType, MatchStatus
 
 
-# ----- Subcontractor / Operator -----
-
-
-class SubcontractorBase(BaseModel):
-    name: str
-    email: Optional[str] = None
-    has_hgv_license: bool = False
-
-
-class SubcontractorCreate(SubcontractorBase):
-    pass
-
-
-class SubcontractorUpdate(BaseModel):
-    name: Optional[str] = None
-    email: Optional[str] = None
-    has_hgv_license: Optional[bool] = None
-
-
-class SubcontractorRead(SubcontractorBase):
-    id: int
-
-    class Config:
-        from_attributes = True
-
-
-# ----- Invoice / InvoiceLine -----
+# ---------- Invoice / lines ----------
 
 
 class InvoiceLineBase(BaseModel):
@@ -57,6 +31,7 @@ class InvoiceLineRead(InvoiceLineBase):
     yard_record_id: Optional[str] = None
 
     class Config:
+        # Pydantic v2 equivalent of orm_mode = True
         from_attributes = True
 
 
@@ -74,6 +49,36 @@ class InvoiceRead(InvoiceBase):
     id: int
     subcontractor_name: str
     lines: List[InvoiceLineRead]
+
+    class Config:
+        from_attributes = True
+
+
+# ---------- Operators ----------
+
+
+class OperatorBase(BaseModel):
+    name: str
+    base_rate: float
+    travel_rate: float
+    has_hgv: bool
+    notes: Optional[str] = ""
+
+
+class OperatorCreate(OperatorBase):
+    pass
+
+
+class OperatorUpdate(BaseModel):
+    name: Optional[str] = None
+    base_rate: Optional[float] = None
+    travel_rate: Optional[float] = None
+    has_hgv: Optional[bool] = None
+    notes: Optional[str] = None
+
+
+class OperatorRead(OperatorBase):
+    id: int
 
     class Config:
         from_attributes = True

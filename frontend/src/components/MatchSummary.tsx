@@ -1,93 +1,86 @@
 import React from "react";
 import { Invoice } from "../api";
 
-const statusColor: Record<string, string> = {
-  MATCHED: "var(--success)",
-  PARTIAL_MATCH: "var(--warning)",
-  NEEDS_REVIEW: "var(--danger)",
-  REJECTED: "var(--danger)",
+const cardStyle: React.CSSProperties = {
+  marginTop: "1.5rem",
+  background: "#ffffff",
+  borderRadius: "1rem",
+  boxShadow: "0 10px 30px rgba(15, 23, 42, 0.08)",
+  padding: "1.5rem",
 };
 
-const statusLabel: Record<string, string> = {
-  MATCHED: "Matched",
-  PARTIAL_MATCH: "Partial",
-  NEEDS_REVIEW: "Needs review",
-  REJECTED: "Rejected",
-};
-
-interface Props {
-  invoice: Invoice | null;
-}
-
-const MatchSummary: React.FC<Props> = ({ invoice }) => {
-  if (!invoice) {
-    return (
-      <div className="card">
-        <div className="card-header">
-          <h2>Latest invoice</h2>
-          <span>Results will appear here after upload</span>
-        </div>
-        <p style={{ color: "var(--text-muted)", fontSize: "0.9rem" }}>
-          Upload an invoice on the left to see the parsed lines and any issues the system spots.
-        </p>
-      </div>
-    );
-  }
-
-  const lines = invoice.lines || [];
+const MatchSummary: React.FC<{ invoice: Invoice }> = ({ invoice }) => {
+  const statusColor: Record<string, string> = {
+    MATCHED: "#16a34a",
+    PARTIAL_MATCH: "#eab308",
+    NEEDS_REVIEW: "#dc2626",
+    REJECTED: "#b91c1c",
+  };
 
   return (
-    <div className="card">
-      <div className="card-header">
-        <h2>Invoice result</h2>
-        <span>
-          {invoice.subcontractor_name} • {invoice.invoice_number} •{" "}
-          {new Date(invoice.invoice_date).toLocaleDateString()}
-        </span>
-      </div>
-
-      {lines.length === 0 && (
-        <p style={{ color: "var(--text-muted)", fontSize: "0.9rem" }}>
-          No lines were parsed from this PDF. If this invoice follows a different layout, the parser may need tweaking.
-        </p>
-      )}
-
-      {lines.length > 0 && (
-        <div className="table-wrapper">
-          <table>
+    <div style={cardStyle}>
+      <h2
+        style={{
+          fontSize: "1.05rem",
+          fontWeight: 600,
+          marginBottom: "0.3rem",
+        }}
+      >
+        Invoice {invoice.invoice_number} – {invoice.subcontractor_name}
+      </h2>
+      <p style={{ fontSize: "0.85rem", color: "#6b7280", marginBottom: "0.75rem" }}>
+        {invoice.lines.length === 0
+          ? "No invoice lines were parsed (parser stub currently returns an empty list)."
+          : "Review the automatically checked lines below."}
+      </p>
+      {invoice.lines.length > 0 && (
+        <div style={{ overflowX: "auto" }}>
+          <table
+            style={{
+              borderCollapse: "collapse",
+              width: "100%",
+              fontSize: "0.85rem",
+            }}
+          >
             <thead>
               <tr>
-                <th>Date</th>
-                <th>Location</th>
-                <th>Role</th>
-                <th>Hours (site / travel / yard)</th>
-                <th>Rate</th>
-                <th>Line total</th>
-                <th>Status</th>
-                <th>Notes</th>
+                <th style={{ textAlign: "left", padding: "0.4rem" }}>Date</th>
+                <th style={{ textAlign: "left", padding: "0.4rem" }}>Location</th>
+                <th style={{ textAlign: "left", padding: "0.4rem" }}>Role</th>
+                <th style={{ textAlign: "left", padding: "0.4rem" }}>
+                  Hours (site / travel / yard)
+                </th>
+                <th style={{ textAlign: "left", padding: "0.4rem" }}>Rate</th>
+                <th style={{ textAlign: "left", padding: "0.4rem" }}>Total</th>
+                <th style={{ textAlign: "left", padding: "0.4rem" }}>Status</th>
+                <th style={{ textAlign: "left", padding: "0.4rem" }}>Notes</th>
               </tr>
             </thead>
             <tbody>
-              {lines.map((line) => (
+              {invoice.lines.map((line) => (
                 <tr key={line.id}>
-                  <td>{new Date(line.work_date).toLocaleDateString()}</td>
-                  <td>{line.site_location}</td>
-                  <td>{line.role}</td>
-                  <td>
+                  <td style={{ padding: "0.35rem 0.4rem" }}>{line.work_date}</td>
+                  <td style={{ padding: "0.35rem 0.4rem" }}>{line.site_location}</td>
+                  <td style={{ padding: "0.35rem 0.4rem" }}>{line.role}</td>
+                  <td style={{ padding: "0.35rem 0.4rem" }}>
                     {line.hours_on_site} / {line.hours_travel} / {line.hours_yard}
                   </td>
-                  <td>£{line.rate_per_hour.toFixed(2)}</td>
-                  <td>£{line.line_total.toFixed(2)}</td>
-                  <td>
-                    <span className="badge" style={{ color: statusColor[line.match_status] }}>
-                      <span
-                        className="status-dot"
-                        style={{ backgroundColor: statusColor[line.match_status] }}
-                      />
-                      {statusLabel[line.match_status] ?? line.match_status}
-                    </span>
+                  <td style={{ padding: "0.35rem 0.4rem" }}>
+                    £{line.rate_per_hour.toFixed(2)}
                   </td>
-                  <td>{line.match_notes}</td>
+                  <td style={{ padding: "0.35rem 0.4rem" }}>
+                    £{line.line_total.toFixed(2)}
+                  </td>
+                  <td
+                    style={{
+                      padding: "0.35rem 0.4rem",
+                      color: statusColor[line.match_status] || "#111827",
+                      fontWeight: 600,
+                    }}
+                  >
+                    {line.match_status}
+                  </td>
+                  <td style={{ padding: "0.35rem 0.4rem" }}>{line.match_notes}</td>
                 </tr>
               ))}
             </tbody>

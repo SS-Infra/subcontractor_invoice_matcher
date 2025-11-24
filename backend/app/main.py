@@ -15,7 +15,7 @@ app = FastAPI(title="Subcontractor Invoice Matcher")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["*"],  # lock down later if you like
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -26,6 +26,58 @@ app.add_middleware(
 async def startup():
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+
+
+# ---------- Operators (Subcontractors) ----------
+
+
+@app.get("/operators", response_model=List[schemas.SubcontractorRead])
+async def list_operators(db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(models.Subcontractor))
+    subs = result.scalars().all()
+    return subs
+
+
+@app.post("/operators", response_model=schemas.SubcontractorRead)
+async def create_operator(data: schemas.SubcontractorCreate, db: AsyncSession = Depends(get_db)):
+    existing = await db.execute(select(models.Subcontractor).where(models.Subcontractor.name == data.name))
+    if existing.scalar_one_or_none():
+        raise HTTPException(status_code=400, detail="Operator with that name already exists")
+
+    sub = models.Subcontractor(
+        name=data.name,
+        email=data.email,
+        has_hgv_license=data.has_hgv_license,
+    )
+    db.add(sub)
+    await db.commit()
+    await db.refresh(sub)
+    return sub
+
+
+@app.put("/operators/{operator_id}", response_model=schemas.SubcontractorRead)
+async def update_operator(
+    operator_id: int,
+    data: schemas.SubcontractorUpdate,
+    db: AsyncSession = Depends(get_db),
+):
+    sub = await db.get(models.Subcontractor, operator_id)
+    if not sub:
+        raise HTTPException(status_code=404, detail="Operator not found")
+
+    if data.name is not None:
+        sub.name = data.name
+    if data.email is not None:
+        sub.email = data.email
+    if data.has_hgv_license is not None:
+        sub.has_hgv_license = data.has_hgv_license
+
+    await db.commit()
+    await db.refresh(sub)
+    return sub
+
+
+# ---------- Invoices ----------
 
 
 @app.post("/invoices/upload", response_model=schemas.InvoiceRead)
@@ -41,7 +93,7 @@ async def upload_invoice(
     with open(file_path, "wb") as f:
         f.write(await file.read())
 
-    # get or create subcontractor
+    # get or create subcontractor/operator
     result = await db.execute(
         select(models.Subcontractor).where(models.Subcontractor.name == subcontractor_name)
     )
@@ -63,16 +115,20 @@ async def upload_invoice(
     db.add(invoice)
     await db.flush()
 
-    # parse PDF into lines (currently stubbed)
+    # parse PDF into lines (now implemented)
     lines_data = await parse_invoice_pdf(file_path)
+    total = 0.0
     for l in lines_data:
         line = models.InvoiceLine(invoice_id=invoice.id, **l)
         db.add(line)
+        total += l["line_total"]
+
+    invoice.total_amount = total
 
     await db.commit()
     await db.refresh(invoice)
 
-    # run matching (does nothing if no lines)
+    # run matching
     await run_matching_for_invoice(db, invoice.id)
     await db.refresh(invoice)
 

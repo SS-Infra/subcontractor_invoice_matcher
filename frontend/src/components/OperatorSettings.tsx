@@ -9,17 +9,17 @@ import {
 const cardStyle: React.CSSProperties = {
   background: "#020617",
   borderRadius: "1rem",
-  boxShadow: "0 18px 40px rgba(15,23,42,0.85)",
-  padding: "1.5rem",
-  border: "1px solid rgba(148,163,184,0.3)",
+  boxShadow: "0 20px 45px rgba(15,23,42,0.9)",
+  padding: "1.5rem 1.75rem",
+  border: "1px solid #1f2937",
 };
 
 const inputStyle: React.CSSProperties = {
-  padding: "0.35rem 0.6rem",
+  padding: "0.4rem 0.65rem",
   borderRadius: "0.6rem",
   border: "1px solid #1f2937",
   backgroundColor: "#020617",
-  color: "#e5e7eb",
+  color: "#f9fafb",
   fontSize: "0.85rem",
   width: "100%",
 };
@@ -27,11 +27,11 @@ const inputStyle: React.CSSProperties = {
 const labelStyle: React.CSSProperties = {
   fontSize: "0.8rem",
   fontWeight: 500,
-  color: "#9ca3af",
+  color: "#cbd5f5",
 };
 
 const buttonPrimary: React.CSSProperties = {
-  padding: "0.5rem 0.9rem",
+  padding: "0.5rem 0.95rem",
   borderRadius: "0.7rem",
   border: "none",
   background:
@@ -52,11 +52,11 @@ const tableHeadCell: React.CSSProperties = {
   fontSize: "0.75rem",
   textTransform: "uppercase",
   color: "#9ca3af",
-  padding: "0.5rem",
+  padding: "0.55rem 0.5rem",
 };
 
 const tableCell: React.CSSProperties = {
-  padding: "0.4rem 0.5rem",
+  padding: "0.45rem 0.5rem",
   fontSize: "0.85rem",
   borderTop: "1px solid #111827",
 };
@@ -151,24 +151,23 @@ const OperatorSettings: React.FC = () => {
           justifyContent: "space-between",
           gap: "1rem",
           alignItems: "center",
-          marginBottom: "1rem",
+          marginBottom: "1.1rem",
         }}
       >
         <div>
           <h2
             style={{
-              fontSize: "1.05rem",
+              fontSize: "1.1rem",
               fontWeight: 600,
               marginBottom: "0.25rem",
-              color: "#e5e7eb",
+              color: "#f9fafb",
             }}
           >
             Operator & Rate Settings
           </h2>
-          <p style={{ fontSize: "0.85rem", color: "#9ca3af" }}>
+          <p style={{ fontSize: "0.9rem", color: "#9ca3af" }}>
             Manage each operator&apos;s hourly rate, travel rate and HGV
-            status. These values can be used when calculating invoice
-            checks.
+            status.
           </p>
         </div>
       </div>
@@ -176,7 +175,7 @@ const OperatorSettings: React.FC = () => {
       {error && (
         <div
           style={{
-            marginBottom: "0.75rem",
+            marginBottom: "0.8rem",
             padding: "0.5rem 0.75rem",
             borderRadius: "0.5rem",
             backgroundColor: "#450a0a",
@@ -194,7 +193,7 @@ const OperatorSettings: React.FC = () => {
         style={{
           display: "grid",
           gridTemplateColumns: "repeat(5, minmax(0, 1fr))",
-          gap: "0.75rem",
+          gap: "0.8rem",
           alignItems: "end",
           marginBottom: "1.25rem",
         }}
@@ -240,7 +239,7 @@ const OperatorSettings: React.FC = () => {
               checked={newHasHgv}
               onChange={(e) => setNewHasHgv(e.target.checked)}
             />
-            <span style={{ fontSize: "0.8rem", color: "#e5e7eb" }}>
+            <span style={{ fontSize: "0.8rem", color: "#f9fafb" }}>
               Has HGV licence
             </span>
           </div>
@@ -356,7 +355,7 @@ const OperatorSettings: React.FC = () => {
                       type="button"
                       style={{
                         ...buttonPrimary,
-                        padding: "0.35rem 0.7rem",
+                        padding: "0.35rem 0.8rem",
                         fontSize: "0.8rem",
                       }}
                       onClick={() => handleSaveRow(op)}

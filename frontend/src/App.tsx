@@ -29,10 +29,11 @@ const App: React.FC = () => {
 
   const wrapperStyle: React.CSSProperties = {
     minHeight: "100vh",
-    background:
-      "radial-gradient(circle at top, #020617 0, #020617 40%, #020617 100%)",
+    background: "#020617",
     padding: "2rem 1rem",
     color: "#e5e7eb",
+    fontFamily:
+      'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
   };
 
   const containerStyle: React.CSSProperties = {
@@ -47,16 +48,16 @@ const App: React.FC = () => {
         type="button"
         onClick={() => setActiveTab(tab)}
         style={{
-          padding: "0.5rem 0.9rem",
+          padding: "0.55rem 1rem",
           borderRadius: "999px",
           border: "none",
           cursor: "pointer",
           fontSize: "0.9rem",
-          fontWeight: 500,
-          background: isActive ? "#0f172a" : "transparent",
-          color: isActive ? "#e5e7eb" : "#9ca3af",
+          fontWeight: 600,
+          background: isActive ? "#111827" : "transparent",
+          color: isActive ? "#f9fafb" : "#9ca3af",
           boxShadow: isActive
-            ? "0 10px 25px rgba(15,23,42,0.85)"
+            ? "0 10px 25px rgba(15,23,42,0.8)"
             : "none",
           transition: "all 0.15s ease",
         }}
@@ -69,9 +70,9 @@ const App: React.FC = () => {
   const cardStyle: React.CSSProperties = {
     background: "#020617",
     borderRadius: "1rem",
-    boxShadow: "0 18px 40px rgba(15,23,42,0.85)",
-    padding: "1.5rem",
-    border: "1px solid rgba(148,163,184,0.3)",
+    boxShadow: "0 20px 45px rgba(15,23,42,0.9)",
+    padding: "1.5rem 1.75rem",
+    border: "1px solid #1f2937",
   };
 
   return (
@@ -89,15 +90,16 @@ const App: React.FC = () => {
           <div>
             <h1
               style={{
-                fontSize: "1.6rem",
+                fontSize: "1.8rem",
                 fontWeight: 700,
-                letterSpacing: "-0.04em",
+                letterSpacing: "-0.03em",
                 color: "#f9fafb",
+                marginBottom: "0.25rem",
               }}
             >
               Subcontractor Invoice Matcher
             </h1>
-            <p style={{ fontSize: "0.9rem", color: "#9ca3af" }}>
+            <p style={{ fontSize: "0.95rem", color: "#cbd5f5" }}>
               Upload subcontractor invoices, compare them to job sheets, and
               manage operator pay settings in one place.
             </p>
@@ -112,13 +114,13 @@ const App: React.FC = () => {
           >
             <div
               style={{
-                backgroundColor: "rgba(15,23,42,0.9)",
+                backgroundColor: "#020617",
                 borderRadius: "999px",
-                padding: "0.25rem",
-                boxShadow: "0 12px 30px rgba(15,23,42,0.9)",
+                padding: "0.3rem",
+                boxShadow: "0 14px 30px rgba(15,23,42,0.85)",
                 display: "flex",
-                gap: "0.25rem",
-                border: "1px solid rgba(148,163,184,0.4)",
+                gap: "0.3rem",
+                border: "1px solid #1f2937",
               }}
             >
               {navButton("invoices", "Invoices")}
@@ -128,7 +130,7 @@ const App: React.FC = () => {
               type="button"
               onClick={handleLogout}
               style={{
-                fontSize: "0.75rem",
+                fontSize: "0.8rem",
                 color: "#9ca3af",
                 background: "transparent",
                 border: "none",
@@ -145,18 +147,19 @@ const App: React.FC = () => {
             <div style={cardStyle}>
               <h2
                 style={{
-                  fontSize: "1.05rem",
+                  fontSize: "1.1rem",
                   fontWeight: 600,
-                  marginBottom: "0.4rem",
+                  marginBottom: "0.5rem",
+                  color: "#f9fafb",
                 }}
               >
                 Upload invoice
               </h2>
               <p
                 style={{
-                  fontSize: "0.85rem",
+                  fontSize: "0.9rem",
                   color: "#9ca3af",
-                  marginBottom: "0.75rem",
+                  marginBottom: "0.9rem",
                 }}
               >
                 Upload a PDF invoice from a subcontractor and we&apos;ll run the

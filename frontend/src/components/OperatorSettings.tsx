@@ -1,0 +1,372 @@
+import React, { useEffect, useState } from "react";
+import {
+  Operator,
+  listOperators,
+  createOperator,
+  updateOperator,
+} from "../api";
+
+const cardStyle: React.CSSProperties = {
+  background: "#ffffff",
+  borderRadius: "1rem",
+  boxShadow: "0 10px 30px rgba(15, 23, 42, 0.1)",
+  padding: "1.5rem",
+};
+
+const inputStyle: React.CSSProperties = {
+  padding: "0.35rem 0.6rem",
+  borderRadius: "0.5rem",
+  border: "1px solid #e5e7eb",
+  fontSize: "0.9rem",
+};
+
+const labelStyle: React.CSSProperties = {
+  fontSize: "0.8rem",
+  fontWeight: 500,
+  color: "#4b5563",
+};
+
+const buttonPrimary: React.CSSProperties = {
+  padding: "0.5rem 0.9rem",
+  borderRadius: "0.7rem",
+  border: "none",
+  background:
+    "linear-gradient(135deg, rgb(59,130,246), rgb(56,189,248))",
+  color: "white",
+  fontWeight: 600,
+  fontSize: "0.9rem",
+  cursor: "pointer",
+};
+
+const checkboxStyle: React.CSSProperties = {
+  width: "1rem",
+  height: "1rem",
+};
+
+const tableHeadCell: React.CSSProperties = {
+  textAlign: "left",
+  fontSize: "0.75rem",
+  textTransform: "uppercase",
+  color: "#6b7280",
+  padding: "0.5rem",
+};
+
+const tableCell: React.CSSProperties = {
+  padding: "0.4rem 0.5rem",
+  fontSize: "0.85rem",
+  borderTop: "1px solid #e5e7eb",
+};
+
+const OperatorSettings: React.FC = () => {
+  const [operators, setOperators] = useState<Operator[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [savingId, setSavingId] = useState<number | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const [newName, setNewName] = useState("");
+  const [newBaseRate, setNewBaseRate] = useState("25");
+  const [newTravelRate, setNewTravelRate] = useState("17");
+  const [newHasHgv, setNewHasHgv] = useState(false);
+  const [newNotes, setNewNotes] = useState("");
+
+  const fetchData = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await listOperators();
+      setOperators(data);
+    } catch (err: any) {
+      setError(err?.message ?? "Failed to load operators");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  const handleCreate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    try {
+      const op = await createOperator({
+        name: newName.trim(),
+        base_rate: parseFloat(newBaseRate),
+        travel_rate: parseFloat(newTravelRate),
+        has_hgv: newHasHgv,
+        notes: newNotes,
+      });
+      setOperators((prev) => [...prev, op]);
+      setNewName("");
+      setNewBaseRate("25");
+      setNewTravelRate("17");
+      setNewHasHgv(false);
+      setNewNotes("");
+    } catch (err: any) {
+      setError(err?.message ?? "Failed to create operator");
+    }
+  };
+
+  const handleUpdateField = (
+    id: number,
+    field: keyof Operator,
+    value: any
+  ) => {
+    setOperators((prev) =>
+      prev.map((op) => (op.id === id ? { ...op, [field]: value } : op))
+    );
+  };
+
+  const handleSaveRow = async (op: Operator) => {
+    setSavingId(op.id);
+    setError(null);
+    try {
+      const updated = await updateOperator(op.id, {
+        name: op.name,
+        base_rate: op.base_rate,
+        travel_rate: op.travel_rate,
+        has_hgv: op.has_hgv,
+        notes: op.notes,
+      });
+      setOperators((prev) =>
+        prev.map((x) => (x.id === op.id ? updated : x))
+      );
+    } catch (err: any) {
+      setError(err?.message ?? "Failed to save operator");
+    } finally {
+      setSavingId(null);
+    }
+  };
+
+  return (
+    <div style={cardStyle}>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          gap: "1rem",
+          alignItems: "center",
+          marginBottom: "1rem",
+        }}
+      >
+        <div>
+          <h2
+            style={{
+              fontSize: "1.1rem",
+              fontWeight: 600,
+              marginBottom: "0.25rem",
+            }}
+          >
+            Operator & Rate Settings
+          </h2>
+          <p style={{ fontSize: "0.85rem", color: "#6b7280" }}>
+            Manage each operator&apos;s hourly rate, travel rate and HGV
+            status. These values can be used when calculating invoice
+            checks.
+          </p>
+        </div>
+      </div>
+
+      {error && (
+        <div
+          style={{
+            marginBottom: "0.75rem",
+            padding: "0.5rem 0.75rem",
+            borderRadius: "0.5rem",
+            background: "#fef2f2",
+            color: "#b91c1c",
+            fontSize: "0.85rem",
+          }}
+        >
+          {error}
+        </div>
+      )}
+
+      {/* Create new operator */}
+      <form
+        onSubmit={handleCreate}
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(5, minmax(0, 1fr))",
+          gap: "0.75rem",
+          alignItems: "end",
+          marginBottom: "1.25rem",
+        }}
+      >
+        <div>
+          <div style={labelStyle}>Name</div>
+          <input
+            style={inputStyle}
+            type="text"
+            value={newName}
+            onChange={(e) => setNewName(e.target.value)}
+            required
+          />
+        </div>
+        <div>
+          <div style={labelStyle}>Base rate (£/hr)</div>
+          <input
+            style={inputStyle}
+            type="number"
+            step="0.01"
+            value={newBaseRate}
+            onChange={(e) => setNewBaseRate(e.target.value)}
+            required
+          />
+        </div>
+        <div>
+          <div style={labelStyle}>Travel rate (£/hr)</div>
+          <input
+            style={inputStyle}
+            type="number"
+            step="0.01"
+            value={newTravelRate}
+            onChange={(e) => setNewTravelRate(e.target.value)}
+            required
+          />
+        </div>
+        <div>
+          <div style={labelStyle}>HGV</div>
+          <div style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}>
+            <input
+              style={checkboxStyle}
+              type="checkbox"
+              checked={newHasHgv}
+              onChange={(e) => setNewHasHgv(e.target.checked)}
+            />
+            <span style={{ fontSize: "0.8rem", color: "#374151" }}>
+              Has HGV licence
+            </span>
+          </div>
+        </div>
+        <div>
+          <div style={labelStyle}>Notes (optional)</div>
+          <input
+            style={inputStyle}
+            type="text"
+            value={newNotes}
+            onChange={(e) => setNewNotes(e.target.value)}
+          />
+        </div>
+        <div style={{ gridColumn: "1 / -1", textAlign: "right" }}>
+          <button type="submit" style={buttonPrimary} disabled={loading}>
+            Add operator
+          </button>
+        </div>
+      </form>
+
+      {/* List / edit operators */}
+      {loading && operators.length === 0 ? (
+        <p style={{ fontSize: "0.85rem", color: "#6b7280" }}>Loading…</p>
+      ) : operators.length === 0 ? (
+        <p style={{ fontSize: "0.85rem", color: "#6b7280" }}>
+          No operators yet. Add your first one above.
+        </p>
+      ) : (
+        <div style={{ overflowX: "auto" }}>
+          <table
+            style={{
+              width: "100%",
+              borderCollapse: "collapse",
+              marginTop: "0.25rem",
+            }}
+          >
+            <thead>
+              <tr>
+                <th style={tableHeadCell}>Name</th>
+                <th style={tableHeadCell}>Base rate (£/hr)</th>
+                <th style={tableHeadCell}>Travel rate (£/hr)</th>
+                <th style={tableHeadCell}>HGV</th>
+                <th style={tableHeadCell}>Notes</th>
+                <th style={tableHeadCell}></th>
+              </tr>
+            </thead>
+            <tbody>
+              {operators.map((op) => (
+                <tr key={op.id}>
+                  <td style={tableCell}>
+                    <input
+                      style={inputStyle}
+                      type="text"
+                      value={op.name}
+                      onChange={(e) =>
+                        handleUpdateField(op.id, "name", e.target.value)
+                      }
+                    />
+                  </td>
+                  <td style={tableCell}>
+                    <input
+                      style={inputStyle}
+                      type="number"
+                      step="0.01"
+                      value={op.base_rate}
+                      onChange={(e) =>
+                        handleUpdateField(
+                          op.id,
+                          "base_rate",
+                          parseFloat(e.target.value)
+                        )
+                      }
+                    />
+                  </td>
+                  <td style={tableCell}>
+                    <input
+                      style={inputStyle}
+                      type="number"
+                      step="0.01"
+                      value={op.travel_rate}
+                      onChange={(e) =>
+                        handleUpdateField(
+                          op.id,
+                          "travel_rate",
+                          parseFloat(e.target.value)
+                        )
+                      }
+                    />
+                  </td>
+                  <td style={tableCell}>
+                    <input
+                      style={checkboxStyle}
+                      type="checkbox"
+                      checked={op.has_hgv}
+                      onChange={(e) =>
+                        handleUpdateField(op.id, "has_hgv", e.target.checked)
+                      }
+                    />
+                  </td>
+                  <td style={tableCell}>
+                    <input
+                      style={inputStyle}
+                      type="text"
+                      value={op.notes}
+                      onChange={(e) =>
+                        handleUpdateField(op.id, "notes", e.target.value)
+                      }
+                    />
+                  </td>
+                  <td style={tableCell}>
+                    <button
+                      type="button"
+                      style={{
+                        ...buttonPrimary,
+                        padding: "0.3rem 0.7rem",
+                        fontSize: "0.8rem",
+                      }}
+                      onClick={() => handleSaveRow(op)}
+                      disabled={savingId === op.id}
+                    >
+                      {savingId === op.id ? "Saving…" : "Save"}
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default OperatorSettings;

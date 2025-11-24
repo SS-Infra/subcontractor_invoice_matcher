@@ -33,7 +33,16 @@ export interface Operator {
   notes: string;
 }
 
-const API_BASE = "http://localhost:8000";
+/**
+ * API base URL
+ *
+ * - By default it uses the same host the frontend is loaded from, but with port 8000.
+ *   e.g. if you open http://192.168.10.50:5173 it will call http://192.168.10.50:8000
+ * - You can override it with VITE_API_BASE in the frontend env if needed.
+ */
+const guessedBase = window.location.origin.replace(/:\d+$/, ":8000");
+const API_BASE =
+  (import.meta as any).env?.VITE_API_BASE || guessedBase;
 
 // ---------- Invoices ----------
 

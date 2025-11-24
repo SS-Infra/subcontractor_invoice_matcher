@@ -27,14 +27,15 @@ export interface Invoice {
 export interface Operator {
   id: number;
   name: string;
-  email?: string | null;
-  has_hgv_license: boolean;
+  base_rate: number;
+  travel_rate: number;
+  has_hgv: boolean;
+  notes: string;
 }
 
-const API_BASE = "http://localhost:8000"; // change if needed
+const API_BASE = "http://localhost:8000";
 
-
-// ----- Invoices -----
+// ---------- Invoices ----------
 
 export async function uploadInvoice(
   subcontractor_name: string,
@@ -61,47 +62,48 @@ export async function uploadInvoice(
 export async function listInvoices(): Promise<Invoice[]> {
   const res = await fetch(`${API_BASE}/invoices`);
   if (!res.ok) {
-    throw new Error("Failed to fetch invoices");
+    throw new Error(`Failed to fetch invoices: ${res.status}`);
   }
   return res.json();
 }
 
-
-// ----- Operators -----
+// ---------- Operators ----------
 
 export async function listOperators(): Promise<Operator[]> {
   const res = await fetch(`${API_BASE}/operators`);
   if (!res.ok) {
-    throw new Error("Failed to fetch operators");
+    throw new Error(`Failed to fetch operators: ${res.status}`);
   }
   return res.json();
 }
 
 export async function createOperator(
-  data: Omit<Operator, "id">
+  payload: Omit<Operator, "id">
 ): Promise<Operator> {
   const res = await fetch(`${API_BASE}/operators`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(data),
+    body: JSON.stringify(payload),
   });
   if (!res.ok) {
-    throw new Error("Failed to create operator");
+    const text = await res.text();
+    throw new Error(`Failed to create operator: ${res.status} ${text}`);
   }
   return res.json();
 }
 
 export async function updateOperator(
   id: number,
-  data: Partial<Omit<Operator, "id">>
+  payload: Partial<Omit<Operator, "id">>
 ): Promise<Operator> {
   const res = await fetch(`${API_BASE}/operators/${id}`, {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(data),
+    body: JSON.stringify(payload),
   });
   if (!res.ok) {
-    throw new Error("Failed to update operator");
+    const text = await res.text();
+    throw new Error(`Failed to update operator: ${res.status} ${text}`);
   }
   return res.json();
 }

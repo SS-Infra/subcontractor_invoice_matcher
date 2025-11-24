@@ -6,25 +6,28 @@ interface Props {
 }
 
 const inputStyle: React.CSSProperties = {
-  padding: "0.4rem 0.7rem",
-  borderRadius: "0.6rem",
-  border: "1px solid #e5e7eb",
+  padding: "0.5rem 0.8rem",
+  borderRadius: "0.8rem",
+  border: "1px solid #1f2937",
+  backgroundColor: "#020617",
+  color: "#e5e7eb",
   fontSize: "0.9rem",
+  width: "100%",
 };
 
 const labelStyle: React.CSSProperties = {
   fontSize: "0.8rem",
   fontWeight: 500,
-  color: "#4b5563",
+  color: "#9ca3af",
 };
 
 const buttonStyle: React.CSSProperties = {
-  padding: "0.6rem 1rem",
-  borderRadius: "0.8rem",
+  padding: "0.65rem 1.2rem",
+  borderRadius: "999px",
   border: "none",
   background:
     "linear-gradient(135deg, rgb(59,130,246), rgb(56,189,248))",
-  color: "white",
+  color: "#f9fafb",
   fontWeight: 600,
   fontSize: "0.9rem",
   cursor: "pointer",
@@ -64,7 +67,7 @@ const InvoiceUpload: React.FC<Props> = ({ onUploaded }) => {
       style={{
         display: "grid",
         gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
-        gap: "0.75rem",
+        gap: "0.9rem 1.2rem",
       }}
     >
       <div>
@@ -113,8 +116,11 @@ const InvoiceUpload: React.FC<Props> = ({ onUploaded }) => {
         <div
           style={{
             gridColumn: "1 / -1",
-            fontSize: "0.85rem",
-            color: "#b91c1c",
+            fontSize: "0.8rem",
+            color: "#fca5a5",
+            backgroundColor: "#450a0a",
+            borderRadius: "0.6rem",
+            padding: "0.4rem 0.6rem",
           }}
         >
           {error}

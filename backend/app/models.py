@@ -1,4 +1,14 @@
-from sqlalchemy import Column, Integer, String, Float, Date, ForeignKey, Enum, Text, Boolean
+from sqlalchemy import (
+    Column,
+    Integer,
+    String,
+    Float,
+    Date,
+    ForeignKey,
+    Enum,
+    Text,
+    Boolean,
+)
 from sqlalchemy.orm import relationship
 from .database import Base
 import enum
@@ -20,15 +30,10 @@ class MatchStatus(str, enum.Enum):
 
 
 class Subcontractor(Base):
-    """
-    This doubles as your operator table.
-    You can flag whether they hold an HGV license here.
-    """
     __tablename__ = "subcontractors"
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, unique=True, index=True)
     email = Column(String, unique=True, nullable=True)
-    has_hgv_license = Column(Boolean, default=False)
 
     invoices = relationship("Invoice", back_populates="subcontractor")
 
@@ -43,7 +48,9 @@ class Invoice(Base):
     total_amount = Column(Float, default=0.0)
 
     subcontractor = relationship("Subcontractor", back_populates="invoices")
-    lines = relationship("InvoiceLine", back_populates="invoice", cascade="all, delete-orphan")
+    lines = relationship(
+        "InvoiceLine", back_populates="invoice", cascade="all, delete-orphan"
+    )
 
 
 class InvoiceLine(Base):
@@ -68,3 +75,23 @@ class InvoiceLine(Base):
     yard_record_id = Column(String, nullable=True)
 
     invoice = relationship("Invoice", back_populates="lines")
+
+
+class Operator(Base):
+    """
+    Individual operator / driver with their own pay rates and HGV flag.
+    This is what you'll manage from the web UI.
+    """
+
+    __tablename__ = "operators"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, unique=True, index=True)
+
+    # Base hourly rate for on-site work
+    base_rate = Column(Float, default=25.0)
+    # Travel hourly rate (driver or passenger depending on HGV flag / your rules)
+    travel_rate = Column(Float, default=17.0)
+
+    has_hgv = Column(Boolean, default=False)
+    notes = Column(Text, default="")

@@ -4,6 +4,35 @@ from pydantic import BaseModel
 from .models import RoleType, MatchStatus
 
 
+# ----- Subcontractor / Operator -----
+
+
+class SubcontractorBase(BaseModel):
+    name: str
+    email: Optional[str] = None
+    has_hgv_license: bool = False
+
+
+class SubcontractorCreate(SubcontractorBase):
+    pass
+
+
+class SubcontractorUpdate(BaseModel):
+    name: Optional[str] = None
+    email: Optional[str] = None
+    has_hgv_license: Optional[bool] = None
+
+
+class SubcontractorRead(SubcontractorBase):
+    id: int
+
+    class Config:
+        from_attributes = True
+
+
+# ----- Invoice / InvoiceLine -----
+
+
 class InvoiceLineBase(BaseModel):
     work_date: date
     site_location: str
@@ -28,7 +57,6 @@ class InvoiceLineRead(InvoiceLineBase):
     yard_record_id: Optional[str] = None
 
     class Config:
-        # Pydantic v2 equivalent of orm_mode = True
         from_attributes = True
 
 

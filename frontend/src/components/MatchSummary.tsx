@@ -51,3 +51,60 @@ const MatchSummary: React.FC<{ invoice: Invoice }> = ({ invoice }) => {
               color: "#e5e7eb",
             }}
           >
+            <thead>
+              <tr>
+                <th style={{ textAlign: "left", padding: "0.45rem" }}>Date</th>
+                <th style={{ textAlign: "left", padding: "0.45rem" }}>
+                  Location
+                </th>
+                <th style={{ textAlign: "left", padding: "0.45rem" }}>Role</th>
+                <th style={{ textAlign: "left", padding: "0.45rem" }}>
+                  Hours (site / travel / yard)
+                </th>
+                <th style={{ textAlign: "left", padding: "0.45rem" }}>Rate</th>
+                <th style={{ textAlign: "left", padding: "0.45rem" }}>Total</th>
+                <th style={{ textAlign: "left", padding: "0.45rem" }}>Status</th>
+                <th style={{ textAlign: "left", padding: "0.45rem" }}>Notes</th>
+              </tr>
+            </thead>
+            <tbody>
+              {invoice.lines.map((line) => (
+                <tr key={line.id}>
+                  <td style={{ padding: "0.4rem 0.45rem" }}>{line.work_date}</td>
+                  <td style={{ padding: "0.4rem 0.45rem" }}>
+                    {line.site_location}
+                  </td>
+                  <td style={{ padding: "0.4rem 0.45rem" }}>{line.role}</td>
+                  <td style={{ padding: "0.4rem 0.45rem" }}>
+                    {line.hours_on_site} / {line.hours_travel} /{" "}
+                    {line.hours_yard}
+                  </td>
+                  <td style={{ padding: "0.4rem 0.45rem" }}>
+                    £{line.rate_per_hour.toFixed(2)}
+                  </td>
+                  <td style={{ padding: "0.4rem 0.45rem" }}>
+                    £{line.line_total.toFixed(2)}
+                  </td>
+                  <td
+                    style={{
+                      padding: "0.4rem 0.45rem",
+                      color: statusColor[line.match_status] || "#e5e7eb",
+                      fontWeight: 700,
+                    }}
+                  >
+                    {line.match_status}
+                  </td>
+                  <td style={{ padding: "0.4rem 0.45rem" }}>
+                    {line.match_notes}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default MatchSummary;

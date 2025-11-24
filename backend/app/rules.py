@@ -1,24 +1,35 @@
-from typing import List
+from typing import List, Optional
 from .config import settings
 from .models import InvoiceLine, MatchStatus, RoleType
 
 
-def expected_rate_for_role(role: RoleType) -> float:
+def expected_rate_for_role(role: RoleType, has_hgv_license: Optional[bool] = None) -> float:
+    """
+    Return the expected rate for a given line role, optionally using the operator's HGV flag.
+    You can configure different driver rates via:
+      - RATE_TRAVEL_DRIVER_HGV
+      - RATE_TRAVEL_DRIVER_NON_HGV
+    in your .env file.
+    """
     if role == RoleType.MAIN_OPERATOR:
         return settings.RATE_MAIN_OPERATOR
     if role == RoleType.SECOND_OPERATOR:
         return settings.RATE_SECOND_OPERATOR
     if role == RoleType.YARD:
         return settings.RATE_YARD
-    if role == RoleType.TRAVEL_DRIVER:
-        return settings.RATE_TRAVEL_DRIVER
     if role == RoleType.TRAVEL_PASSENGER:
         return settings.RATE_TRAVEL_PASSENGER
+    if role == RoleType.TRAVEL_DRIVER:
+        if has_hgv_license is True:
+            return settings.RATE_TRAVEL_DRIVER_HGV
+        if has_hgv_license is False:
+            return settings.RATE_TRAVEL_DRIVER_NON_HGV
+        return settings.RATE_TRAVEL_DRIVER
     return 0.0
 
 
-def check_rates(line: InvoiceLine, issues: List[str]):
-    expected_rate = expected_rate_for_role(line.role)
+def check_rates(line: InvoiceLine, issues: List[str], has_hgv_license: Optional[bool]):
+    expected_rate = expected_rate_for_role(line.role, has_hgv_license)
     if abs(line.rate_per_hour - expected_rate) > 0.01:
         issues.append(f"Rate mismatch: expected {expected_rate}, got {line.rate_per_hour}")
 
@@ -51,7 +62,12 @@ def compute_status(issues: List[str], has_jobsheet: bool, has_yard_record: bool)
     return MatchStatus.NEEDS_REVIEW
 
 
-def apply_rules(line: InvoiceLine, has_jobsheet: bool, has_yard_record: bool) -> None:
+def apply_rules(
+    line: InvoiceLine,
+    has_jobsheet: bool,
+    has_yard_record: bool,
+    has_hgv_license: Optional[bool],
+) -> None:
     issues: List[str] = []
 
     if not has_jobsheet and line.hours_on_site > 0:
@@ -59,7 +75,7 @@ def apply_rules(line: InvoiceLine, has_jobsheet: bool, has_yard_record: bool) ->
     if line.hours_yard > 0 and not has_yard_record:
         issues.append("No yard sign-in")
 
-    check_rates(line, issues)
+    check_rates(line, issues, has_hgv_license)
     check_yard_hours(line, issues)
     check_full_shift(line, issues)
     check_maths(line, issues)

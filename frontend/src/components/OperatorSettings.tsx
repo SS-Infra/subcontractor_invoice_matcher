@@ -7,23 +7,27 @@ import {
 } from "../api";
 
 const cardStyle: React.CSSProperties = {
-  background: "#ffffff",
+  background: "#020617",
   borderRadius: "1rem",
-  boxShadow: "0 10px 30px rgba(15, 23, 42, 0.1)",
+  boxShadow: "0 18px 40px rgba(15,23,42,0.85)",
   padding: "1.5rem",
+  border: "1px solid rgba(148,163,184,0.3)",
 };
 
 const inputStyle: React.CSSProperties = {
   padding: "0.35rem 0.6rem",
-  borderRadius: "0.5rem",
-  border: "1px solid #e5e7eb",
-  fontSize: "0.9rem",
+  borderRadius: "0.6rem",
+  border: "1px solid #1f2937",
+  backgroundColor: "#020617",
+  color: "#e5e7eb",
+  fontSize: "0.85rem",
+  width: "100%",
 };
 
 const labelStyle: React.CSSProperties = {
   fontSize: "0.8rem",
   fontWeight: 500,
-  color: "#4b5563",
+  color: "#9ca3af",
 };
 
 const buttonPrimary: React.CSSProperties = {
@@ -34,7 +38,7 @@ const buttonPrimary: React.CSSProperties = {
     "linear-gradient(135deg, rgb(59,130,246), rgb(56,189,248))",
   color: "white",
   fontWeight: 600,
-  fontSize: "0.9rem",
+  fontSize: "0.85rem",
   cursor: "pointer",
 };
 
@@ -47,14 +51,14 @@ const tableHeadCell: React.CSSProperties = {
   textAlign: "left",
   fontSize: "0.75rem",
   textTransform: "uppercase",
-  color: "#6b7280",
+  color: "#9ca3af",
   padding: "0.5rem",
 };
 
 const tableCell: React.CSSProperties = {
   padding: "0.4rem 0.5rem",
   fontSize: "0.85rem",
-  borderTop: "1px solid #e5e7eb",
+  borderTop: "1px solid #111827",
 };
 
 const OperatorSettings: React.FC = () => {
@@ -153,14 +157,15 @@ const OperatorSettings: React.FC = () => {
         <div>
           <h2
             style={{
-              fontSize: "1.1rem",
+              fontSize: "1.05rem",
               fontWeight: 600,
               marginBottom: "0.25rem",
+              color: "#e5e7eb",
             }}
           >
             Operator & Rate Settings
           </h2>
-          <p style={{ fontSize: "0.85rem", color: "#6b7280" }}>
+          <p style={{ fontSize: "0.85rem", color: "#9ca3af" }}>
             Manage each operator&apos;s hourly rate, travel rate and HGV
             status. These values can be used when calculating invoice
             checks.
@@ -174,8 +179,8 @@ const OperatorSettings: React.FC = () => {
             marginBottom: "0.75rem",
             padding: "0.5rem 0.75rem",
             borderRadius: "0.5rem",
-            background: "#fef2f2",
-            color: "#b91c1c",
+            backgroundColor: "#450a0a",
+            color: "#fecaca",
             fontSize: "0.85rem",
           }}
         >
@@ -235,7 +240,7 @@ const OperatorSettings: React.FC = () => {
               checked={newHasHgv}
               onChange={(e) => setNewHasHgv(e.target.checked)}
             />
-            <span style={{ fontSize: "0.8rem", color: "#374151" }}>
+            <span style={{ fontSize: "0.8rem", color: "#e5e7eb" }}>
               Has HGV licence
             </span>
           </div>
@@ -258,9 +263,9 @@ const OperatorSettings: React.FC = () => {
 
       {/* List / edit operators */}
       {loading && operators.length === 0 ? (
-        <p style={{ fontSize: "0.85rem", color: "#6b7280" }}>Loading…</p>
+        <p style={{ fontSize: "0.85rem", color: "#9ca3af" }}>Loading…</p>
       ) : operators.length === 0 ? (
-        <p style={{ fontSize: "0.85rem", color: "#6b7280" }}>
+        <p style={{ fontSize: "0.85rem", color: "#9ca3af" }}>
           No operators yet. Add your first one above.
         </p>
       ) : (
@@ -270,6 +275,7 @@ const OperatorSettings: React.FC = () => {
               width: "100%",
               borderCollapse: "collapse",
               marginTop: "0.25rem",
+              color: "#e5e7eb",
             }}
           >
             <thead>
@@ -350,7 +356,7 @@ const OperatorSettings: React.FC = () => {
                       type="button"
                       style={{
                         ...buttonPrimary,
-                        padding: "0.3rem 0.7rem",
+                        padding: "0.35rem 0.7rem",
                         fontSize: "0.8rem",
                       }}
                       onClick={() => handleSaveRow(op)}

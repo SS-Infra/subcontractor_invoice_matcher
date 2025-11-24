@@ -39,8 +39,11 @@ async def upload_invoice(
     file: UploadFile = File(...),
     db: AsyncSession = Depends(get_db),
 ):
-    os.makedirs("uploads", exist_ok=True)
-    file_path = os.path.join("uploads", file.filename)
+    # Store under ./data/uploads so it lives in the backend_data volume
+    upload_dir = os.path.join("data", "uploads")
+    os.makedirs(upload_dir, exist_ok=True)
+    file_path = os.path.join(upload_dir, file.filename)
+
     with open(file_path, "wb") as f:
         f.write(await file.read())
 

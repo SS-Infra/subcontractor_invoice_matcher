@@ -16,8 +16,10 @@ const InvoiceUpload: React.FC<Props> = ({ onUploaded }) => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!file) return;
+
     setLoading(true);
     setError(null);
+
     try {
       const inv = await uploadInvoice(subcontractor, invoiceNumber, invoiceDate, file);
       onUploaded(inv);
@@ -29,37 +31,56 @@ const InvoiceUpload: React.FC<Props> = ({ onUploaded }) => {
   };
 
   return (
-    <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "0.5rem", maxWidth: 400 }}>
-      <input
-        type="text"
-        placeholder="Subcontractor name"
-        value={subcontractor}
-        onChange={e => setSubcontractor(e.target.value)}
-        required
-      />
-      <input
-        type="text"
-        placeholder="Invoice number"
-        value={invoiceNumber}
-        onChange={e => setInvoiceNumber(e.target.value)}
-        required
-      />
-      <input
-        type="date"
-        value={invoiceDate}
-        onChange={e => setInvoiceDate(e.target.value)}
-        required
-      />
-      <input
-        type="file"
-        accept="application/pdf"
-        onChange={e => setFile(e.target.files?.[0] ?? null)}
-        required
-      />
-      <button type="submit" disabled={loading}>
-        {loading ? "Uploading..." : "Upload & Match"}
-      </button>
-      {error && <div style={{ color: "red" }}>{error}</div>}
+    <form onSubmit={handleSubmit} className="input-grid-1col" style={{ gap: "0.9rem" }}>
+      <div className="input-grid">
+        <label>
+          Subcontractor / Operator
+          <input
+            type="text"
+            value={subcontractor}
+            onChange={(e) => setSubcontractor(e.target.value)}
+            placeholder="e.g. Joshua Dunton-Baker"
+            required
+          />
+        </label>
+        <label>
+          Invoice number
+          <input
+            type="text"
+            value={invoiceNumber}
+            onChange={(e) => setInvoiceNumber(e.target.value)}
+            placeholder="INV-00123"
+            required
+          />
+        </label>
+        <label>
+          Invoice date
+          <input
+            type="date"
+            value={invoiceDate}
+            onChange={(e) => setInvoiceDate(e.target.value)}
+            required
+          />
+        </label>
+        <label>
+          Invoice PDF
+          <input
+            type="file"
+            accept="application/pdf"
+            onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+            required
+          />
+        </label>
+      </div>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "1rem" }}>
+        <div style={{ fontSize: "0.8rem", color: "var(--text-muted)" }}>
+          PDFs that follow the standard layout will be auto-parsed into yard / drive / work lines.
+        </div>
+        <button type="submit" className="primary" disabled={loading}>
+          {loading ? "Uploading…" : "Upload & Match"}
+        </button>
+      </div>
+      {error && <div style={{ color: "var(--danger)", fontSize: "0.8rem" }}>{error}</div>}
     </form>
   );
 };

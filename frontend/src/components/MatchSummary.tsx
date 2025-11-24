@@ -3,32 +3,40 @@ import { Invoice } from "../api";
 
 const cardStyle: React.CSSProperties = {
   marginTop: "1.5rem",
-  background: "#ffffff",
+  background: "#020617",
   borderRadius: "1rem",
-  boxShadow: "0 10px 30px rgba(15, 23, 42, 0.08)",
+  boxShadow: "0 18px 40px rgba(15,23,42,0.85)",
   padding: "1.5rem",
+  border: "1px solid rgba(148,163,184,0.3)",
+};
+
+const headerText: React.CSSProperties = {
+  fontSize: "1.05rem",
+  fontWeight: 600,
+  marginBottom: "0.3rem",
+  color: "#e5e7eb",
+};
+
+const subtitle: React.CSSProperties = {
+  fontSize: "0.85rem",
+  color: "#9ca3af",
+  marginBottom: "0.75rem",
 };
 
 const MatchSummary: React.FC<{ invoice: Invoice }> = ({ invoice }) => {
   const statusColor: Record<string, string> = {
-    MATCHED: "#16a34a",
+    MATCHED: "#22c55e",
     PARTIAL_MATCH: "#eab308",
-    NEEDS_REVIEW: "#dc2626",
-    REJECTED: "#b91c1c",
+    NEEDS_REVIEW: "#f97316",
+    REJECTED: "#f97373",
   };
 
   return (
     <div style={cardStyle}>
-      <h2
-        style={{
-          fontSize: "1.05rem",
-          fontWeight: 600,
-          marginBottom: "0.3rem",
-        }}
-      >
+      <h2 style={headerText}>
         Invoice {invoice.invoice_number} – {invoice.subcontractor_name}
       </h2>
-      <p style={{ fontSize: "0.85rem", color: "#6b7280", marginBottom: "0.75rem" }}>
+      <p style={subtitle}>
         {invoice.lines.length === 0
           ? "No invoice lines were parsed (parser stub currently returns an empty list)."
           : "Review the automatically checked lines below."}
@@ -40,12 +48,15 @@ const MatchSummary: React.FC<{ invoice: Invoice }> = ({ invoice }) => {
               borderCollapse: "collapse",
               width: "100%",
               fontSize: "0.85rem",
+              color: "#e5e7eb",
             }}
           >
             <thead>
               <tr>
                 <th style={{ textAlign: "left", padding: "0.4rem" }}>Date</th>
-                <th style={{ textAlign: "left", padding: "0.4rem" }}>Location</th>
+                <th style={{ textAlign: "left", padding: "0.4rem" }}>
+                  Location
+                </th>
                 <th style={{ textAlign: "left", padding: "0.4rem" }}>Role</th>
                 <th style={{ textAlign: "left", padding: "0.4rem" }}>
                   Hours (site / travel / yard)
@@ -60,10 +71,13 @@ const MatchSummary: React.FC<{ invoice: Invoice }> = ({ invoice }) => {
               {invoice.lines.map((line) => (
                 <tr key={line.id}>
                   <td style={{ padding: "0.35rem 0.4rem" }}>{line.work_date}</td>
-                  <td style={{ padding: "0.35rem 0.4rem" }}>{line.site_location}</td>
+                  <td style={{ padding: "0.35rem 0.4rem" }}>
+                    {line.site_location}
+                  </td>
                   <td style={{ padding: "0.35rem 0.4rem" }}>{line.role}</td>
                   <td style={{ padding: "0.35rem 0.4rem" }}>
-                    {line.hours_on_site} / {line.hours_travel} / {line.hours_yard}
+                    {line.hours_on_site} / {line.hours_travel} /{" "}
+                    {line.hours_yard}
                   </td>
                   <td style={{ padding: "0.35rem 0.4rem" }}>
                     £{line.rate_per_hour.toFixed(2)}
@@ -74,13 +88,15 @@ const MatchSummary: React.FC<{ invoice: Invoice }> = ({ invoice }) => {
                   <td
                     style={{
                       padding: "0.35rem 0.4rem",
-                      color: statusColor[line.match_status] || "#111827",
+                      color: statusColor[line.match_status] || "#e5e7eb",
                       fontWeight: 600,
                     }}
                   >
                     {line.match_status}
                   </td>
-                  <td style={{ padding: "0.35rem 0.4rem" }}>{line.match_notes}</td>
+                  <td style={{ padding: "0.35rem 0.4rem" }}>
+                    {line.match_notes}
+                  </td>
                 </tr>
               ))}
             </tbody>

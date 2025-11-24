@@ -15,7 +15,7 @@ app = FastAPI(title="Subcontractor Invoice Matcher")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # lock down later if you like
+    allow_origins=["*"],  # lock down later if you want
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -28,56 +28,7 @@ async def startup():
         await conn.run_sync(Base.metadata.create_all)
 
 
-# ---------- Operators (Subcontractors) ----------
-
-
-@app.get("/operators", response_model=List[schemas.SubcontractorRead])
-async def list_operators(db: AsyncSession = Depends(get_db)):
-    result = await db.execute(select(models.Subcontractor))
-    subs = result.scalars().all()
-    return subs
-
-
-@app.post("/operators", response_model=schemas.SubcontractorRead)
-async def create_operator(data: schemas.SubcontractorCreate, db: AsyncSession = Depends(get_db)):
-    existing = await db.execute(select(models.Subcontractor).where(models.Subcontractor.name == data.name))
-    if existing.scalar_one_or_none():
-        raise HTTPException(status_code=400, detail="Operator with that name already exists")
-
-    sub = models.Subcontractor(
-        name=data.name,
-        email=data.email,
-        has_hgv_license=data.has_hgv_license,
-    )
-    db.add(sub)
-    await db.commit()
-    await db.refresh(sub)
-    return sub
-
-
-@app.put("/operators/{operator_id}", response_model=schemas.SubcontractorRead)
-async def update_operator(
-    operator_id: int,
-    data: schemas.SubcontractorUpdate,
-    db: AsyncSession = Depends(get_db),
-):
-    sub = await db.get(models.Subcontractor, operator_id)
-    if not sub:
-        raise HTTPException(status_code=404, detail="Operator not found")
-
-    if data.name is not None:
-        sub.name = data.name
-    if data.email is not None:
-        sub.email = data.email
-    if data.has_hgv_license is not None:
-        sub.has_hgv_license = data.has_hgv_license
-
-    await db.commit()
-    await db.refresh(sub)
-    return sub
-
-
-# ---------- Invoices ----------
+# ---------- Invoice upload & listing ----------
 
 
 @app.post("/invoices/upload", response_model=schemas.InvoiceRead)
@@ -93,7 +44,7 @@ async def upload_invoice(
     with open(file_path, "wb") as f:
         f.write(await file.read())
 
-    # get or create subcontractor/operator
+    # get or create subcontractor
     result = await db.execute(
         select(models.Subcontractor).where(models.Subcontractor.name == subcontractor_name)
     )
@@ -115,20 +66,16 @@ async def upload_invoice(
     db.add(invoice)
     await db.flush()
 
-    # parse PDF into lines (now implemented)
+    # parse PDF into lines (currently stubbed)
     lines_data = await parse_invoice_pdf(file_path)
-    total = 0.0
     for l in lines_data:
         line = models.InvoiceLine(invoice_id=invoice.id, **l)
         db.add(line)
-        total += l["line_total"]
-
-    invoice.total_amount = total
 
     await db.commit()
     await db.refresh(invoice)
 
-    # run matching
+    # run matching (does nothing if no lines)
     await run_matching_for_invoice(db, invoice.id)
     await db.refresh(invoice)
 
@@ -159,3 +106,62 @@ async def list_invoices(db: AsyncSession = Depends(get_db)):
             )
         )
     return out
+
+
+# ---------- Operators CRUD ----------
+
+
+@app.get("/operators", response_model=List[schemas.OperatorRead])
+async def list_operators(db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(models.Operator))
+    operators = result.scalars().all()
+    return operators
+
+
+@app.post("/operators", response_model=schemas.OperatorRead)
+async def create_operator(
+    payload: schemas.OperatorCreate, db: AsyncSession = Depends(get_db)
+):
+    # simple uniqueness check
+    result = await db.execute(
+        select(models.Operator).where(models.Operator.name == payload.name)
+    )
+    existing = result.scalar_one_or_none()
+    if existing:
+        raise HTTPException(status_code=400, detail="Operator with that name already exists")
+
+    op = models.Operator(
+        name=payload.name,
+        base_rate=payload.base_rate,
+        travel_rate=payload.travel_rate,
+        has_hgv=payload.has_hgv,
+        notes=payload.notes or "",
+    )
+    db.add(op)
+    await db.commit()
+    await db.refresh(op)
+    return op
+
+
+@app.put("/operators/{operator_id}", response_model=schemas.OperatorRead)
+async def update_operator(
+    operator_id: int, payload: schemas.OperatorUpdate, db: AsyncSession = Depends(get_db)
+):
+    op = await db.get(models.Operator, operator_id)
+    if not op:
+        raise HTTPException(status_code=404, detail="Operator not found")
+
+    if payload.name is not None:
+        op.name = payload.name
+    if payload.base_rate is not None:
+        op.base_rate = payload.base_rate
+    if payload.travel_rate is not None:
+        op.travel_rate = payload.travel_rate
+    if payload.has_hgv is not None:
+        op.has_hgv = payload.has_hgv
+    if payload.notes is not None:
+        op.notes = payload.notes
+
+    await db.commit()
+    await db.refresh(op)
+    return op

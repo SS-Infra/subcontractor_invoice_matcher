@@ -4,26 +4,25 @@ services:
   backend:
     build: ./backend
     container_name: sim-backend
-    ports:
-      - "8000:8000"
+    restart: unless-stopped
     environment:
-      - DATABASE_URL=sqlite+aiosqlite:///./data/db.sqlite3
-      - OLLAMA_BASE_URL=http://192.168.10.9:11434
-      - OLLAMA_MODEL=llama3
+      - OLLAMA_BASE_URL=http://192.168.10.50:11434   # <-- CHANGE to your Ollama host
+      - OLLAMA_MODEL=llama3.1:8b
     volumes:
       - backend_data:/app/data
-    restart: unless-stopped
+    ports:
+      - "8000:8000"
 
   frontend:
     build: ./frontend
     container_name: sim-frontend
-    ports:
-      - "5173:5173"
+    restart: unless-stopped
     environment:
-      - NODE_ENV=production
+      - VITE_API_BASE=http://backend:8000
     depends_on:
       - backend
-    restart: unless-stopped
+    ports:
+      - "5173:80"
 
 volumes:
   backend_data:

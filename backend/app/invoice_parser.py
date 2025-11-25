@@ -10,9 +10,7 @@ from .ollama_client import call_ollama_chat, parse_json_from_model_output, Ollam
 
 def extract_text_from_pdf(file_path: str) -> str:
     """
-    Extract raw text from a PDF using pypdf.
-
-    This will not be perfect for all layouts, but it's a solid starting point.
+    Extract text from a PDF using pypdf.
     """
     reader = PdfReader(file_path)
     chunks: List[str] = []
@@ -30,7 +28,7 @@ def _normalise_date(value: Optional[str]) -> Optional[str]:
 
     value = value.strip()
 
-    # Try a few common formats
+    # Common UK-ish formats
     for fmt in ("%Y-%m-%d", "%d/%m/%Y", "%d-%m-%Y", "%d/%m/%y"):
         try:
             dt = datetime.strptime(value, fmt)
@@ -38,7 +36,6 @@ def _normalise_date(value: Optional[str]) -> Optional[str]:
         except ValueError:
             continue
 
-    # If nothing matches, just return None and let the DB accept NULL
     return None
 
 
@@ -53,7 +50,7 @@ def _to_float(value: Any, default: float = 0.0) -> float:
 
 def _coerce_line(raw_line: Dict[str, Any]) -> Dict[str, Any]:
     """
-    Coerce a raw dictionary from the model into the shape expected by InvoiceLineBase.
+    Coerce a raw dict from the model into the shape expected by InvoiceLineBase.
     """
     work_date = _normalise_date(raw_line.get("work_date"))
 
@@ -66,7 +63,7 @@ def _coerce_line(raw_line: Dict[str, Any]) -> Dict[str, Any]:
         "hours_yard": _to_float(raw_line.get("hours_yard"), 0.0),
         "rate_per_hour": _to_float(raw_line.get("rate_per_hour"), 0.0),
         "line_total": _to_float(raw_line.get("line_total"), 0.0),
-        # Matching fields will be filled later when we cross-check with Jotform / job sheets
+        # Matching fields – will be updated later when we compare to Jotform/job sheets
         "match_status": "NEEDS_REVIEW",
         "match_score": 0.0,
         "match_notes": "",
@@ -77,18 +74,16 @@ def _coerce_line(raw_line: Dict[str, Any]) -> Dict[str, Any]:
 
 async def parse_invoice_pdf(file_path: str) -> List[Dict[str, Any]]:
     """
-    Main entrypoint: extracts text from the PDF, sends it to Ollama, and returns
-    a list of dictionaries ready to be used to create InvoiceLine rows.
-
-    This function is async because the Ollama call is async.
+    Extract text from the PDF, send to Ollama, and return a list of dictionaries
+    ready to be used to create InvoiceLine rows.
     """
     raw_text = extract_text_from_pdf(file_path)
 
     if not raw_text.strip():
-        # No text? Probably an image-only PDF. For now just return no lines.
+        # Nothing recognisable – probably image-only PDF. For now: no lines.
         return []
 
-    # Truncate giant invoices so we don't blow context. Adjust if needed.
+    # Clamp huge invoices so we don't blow context
     max_chars = 8000
     if len(raw_text) > max_chars:
         raw_text = raw_text[:max_chars]
@@ -112,7 +107,7 @@ You must extract the invoice lines and output ONLY valid JSON in the following s
 }
 
 Rules:
-- Use decimal hours for all hour fields (e.g. 7.5 for 7 hours 30 minutes).
+- Use decimal hours for all hour fields (e.g. 7.5 for 7h30).
 - If a field is not present, use 0 for numeric fields and null for work_date.
 - DO NOT include any extra fields.
 - DO NOT include any explanation or text outside the JSON.
@@ -130,8 +125,7 @@ Here is the raw text of the invoice:
         model_output = await call_ollama_chat(prompt, temperature=0.0)
         parsed = parse_json_from_model_output(model_output)
     except OllamaError as e:
-        # For now, fail soft: log and return no lines.
-        # Later we might want to surface this to the UI.
+        # Fail soft for now – log and return no lines.
         print(f"[invoice_parser] Ollama error while parsing invoice: {e}")
         return []
 

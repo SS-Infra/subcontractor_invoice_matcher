@@ -38,7 +38,7 @@ async def on_startup() -> None:
         await conn.run_sync(Base.metadata.create_all)
 
 
-# Stub for future matching logic (Jotform/job sheet comparison)
+# Stub for future job sheet / Jotform comparison
 async def run_matching_for_invoice(db: AsyncSession, invoice_id: int) -> None:
     return None
 

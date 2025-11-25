@@ -70,6 +70,7 @@ const OperatorSettings: React.FC = () => {
   const [newName, setNewName] = useState("");
   const [newBaseRate, setNewBaseRate] = useState("25");
   const [newTravelRate, setNewTravelRate] = useState("17");
+  const [newYardRate, setNewYardRate] = useState("17"); // NEW
   const [newHasHgv, setNewHasHgv] = useState(false);
   const [newNotes, setNewNotes] = useState("");
 
@@ -92,19 +93,23 @@ const OperatorSettings: React.FC = () => {
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!newName.trim()) return;
     setError(null);
     try {
-      const op = await createOperator({
+      const payload: Omit<Operator, "id"> = {
         name: newName.trim(),
         base_rate: parseFloat(newBaseRate),
         travel_rate: parseFloat(newTravelRate),
+        yard_rate: parseFloat(newYardRate),
         has_hgv: newHasHgv,
         notes: newNotes,
-      });
-      setOperators((prev) => [...prev, op]);
+      };
+      const created = await createOperator(payload);
+      setOperators((prev) => [...prev, created]);
       setNewName("");
       setNewBaseRate("25");
       setNewTravelRate("17");
+      setNewYardRate("17");
       setNewHasHgv(false);
       setNewNotes("");
     } catch (err: any) {
@@ -130,6 +135,7 @@ const OperatorSettings: React.FC = () => {
         name: op.name,
         base_rate: op.base_rate,
         travel_rate: op.travel_rate,
+        yard_rate: op.yard_rate,
         has_hgv: op.has_hgv,
         notes: op.notes,
       });
@@ -166,8 +172,8 @@ const OperatorSettings: React.FC = () => {
             Operator & Rate Settings
           </h2>
           <p style={{ fontSize: "0.9rem", color: "#9ca3af" }}>
-            Manage each operator&apos;s hourly rate, travel rate and HGV
-            status.
+            Manage each operator&apos;s hourly rate, travel rate, yard rate and
+            HGV status.
           </p>
         </div>
       </div>
@@ -192,7 +198,7 @@ const OperatorSettings: React.FC = () => {
         onSubmit={handleCreate}
         style={{
           display: "grid",
-          gridTemplateColumns: "repeat(5, minmax(0, 1fr))",
+          gridTemplateColumns: "repeat(6, minmax(0, 1fr))",
           gap: "0.8rem",
           alignItems: "end",
           marginBottom: "1.25rem",
@@ -227,6 +233,17 @@ const OperatorSettings: React.FC = () => {
             step="0.01"
             value={newTravelRate}
             onChange={(e) => setNewTravelRate(e.target.value)}
+            required
+          />
+        </div>
+        <div>
+          <div style={labelStyle}>Yard rate (£/hr)</div>
+          <input
+            style={inputStyle}
+            type="number"
+            step="0.01"
+            value={newYardRate}
+            onChange={(e) => setNewYardRate(e.target.value)}
             required
           />
         </div>
@@ -280,8 +297,9 @@ const OperatorSettings: React.FC = () => {
             <thead>
               <tr>
                 <th style={tableHeadCell}>Name</th>
-                <th style={tableHeadCell}>Base rate (£/hr)</th>
-                <th style={tableHeadCell}>Travel rate (£/hr)</th>
+                <th style={tableHeadCell}>Base (£/hr)</th>
+                <th style={tableHeadCell}>Travel (£/hr)</th>
+                <th style={tableHeadCell}>Yard (£/hr)</th>
                 <th style={tableHeadCell}>HGV</th>
                 <th style={tableHeadCell}>Notes</th>
                 <th style={tableHeadCell}></th>
@@ -325,6 +343,21 @@ const OperatorSettings: React.FC = () => {
                         handleUpdateField(
                           op.id,
                           "travel_rate",
+                          parseFloat(e.target.value)
+                        )
+                      }
+                    />
+                  </td>
+                  <td style={tableCell}>
+                    <input
+                      style={inputStyle}
+                      type="number"
+                      step="0.01"
+                      value={op.yard_rate}
+                      onChange={(e) =>
+                        handleUpdateField(
+                          op.id,
+                          "yard_rate",
                           parseFloat(e.target.value)
                         )
                       }

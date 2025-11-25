@@ -18,6 +18,7 @@ from sqlalchemy import select
 
 from .database import Base, engine, get_db
 from . import models, schemas
+from .invoice_parser import parse_invoice_pdf  # NEW
 
 
 app = FastAPI(title="Subcontractor Invoice Matcher")
@@ -37,11 +38,7 @@ async def on_startup() -> None:
         await conn.run_sync(Base.metadata.create_all)
 
 
-
-async def parse_invoice_pdf(file_path: str) -> list[dict]:
-    return []
-
-
+# Stub for future matching logic (Jotform/job sheet comparison)
 async def run_matching_for_invoice(db: AsyncSession, invoice_id: int) -> None:
     return None
 
@@ -88,8 +85,9 @@ async def upload_invoice(
     db.add(invoice)
     await db.flush()
 
-    parsed_lines = await parse_invoice_pdf(file_path)
-    for line_data in parsed_lines:
+    # REAL parsing via Ollama-backed parser
+    lines_data = await parse_invoice_pdf(file_path)
+    for line_data in lines_data:
         line = models.InvoiceLine(invoice_id=invoice.id, **line_data)
         db.add(line)
 

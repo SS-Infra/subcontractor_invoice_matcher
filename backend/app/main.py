@@ -18,6 +18,7 @@ from sqlalchemy import select
 
 from .database import Base, engine, get_db
 from . import models, schemas
+from .invoice_parser import parse_invoice_pdf as ollama_parse_invoice_pdf  # <-- ONLY used by debug endpoint
 
 
 app = FastAPI(title="Subcontractor Invoice Matcher")
@@ -37,13 +38,14 @@ async def on_startup() -> None:
         await conn.run_sync(Base.metadata.create_all)
 
 
-# ----- TEMP STUBS (NO OLLAMA CALL HERE) -----
+# -------------------------------------------------------------------
+# TEMP STUBS used by the main upload flow (no Ollama here yet)
+# -------------------------------------------------------------------
 
 async def parse_invoice_pdf(file_path: str):
     """
     TEMP: stub – returns no lines.
-    We’ll wire this to the real Ollama-based parser once the core app is
-    rock-solid again.
+    The real Ollama parser is available via the /debug/parse-invoice endpoint.
     """
     return []
 
@@ -55,7 +57,9 @@ async def run_matching_for_invoice(db: AsyncSession, invoice_id: int) -> None:
     return None
 
 
-# ----- INVOICE ENDPOINTS -----
+# -------------------------------------------------------------------
+# INVOICE ENDPOINTS
+# -------------------------------------------------------------------
 
 
 @app.post("/invoices/upload", response_model=schemas.InvoiceRead)
@@ -100,7 +104,7 @@ async def upload_invoice(
     db.add(invoice)
     await db.flush()
 
-    # STUB: no parsed lines yet
+    # STUB: currently no parsed lines stored by default
     lines_data = await parse_invoice_pdf(file_path)
     for line_data in lines_data:
         line = models.InvoiceLine(invoice_id=invoice.id, **line_data)
@@ -144,7 +148,9 @@ async def list_invoices(db: AsyncSession = Depends(get_db)) -> List[schemas.Invo
     return output
 
 
-# ----- OPERATOR ENDPOINTS -----
+# -------------------------------------------------------------------
+# OPERATOR ENDPOINTS
+# -------------------------------------------------------------------
 
 
 @app.get("/operators", response_model=List[schemas.OperatorRead])
@@ -207,3 +213,37 @@ async def update_operator(
     await db.commit()
     await db.refresh(op)
     return op
+
+
+# -------------------------------------------------------------------
+# DEBUG ENDPOINT – uses Ollama WITHOUT touching DB
+# -------------------------------------------------------------------
+
+
+@app.post("/debug/parse-invoice")
+async def debug_parse_invoice(file: UploadFile = File(...)) -> dict:
+    """
+    Debug endpoint to test the Ollama-backed invoice parser.
+
+    - Saves the uploaded PDF under data/debug/
+    - Runs the real Ollama parser
+    - Returns the parsed lines as JSON
+
+    This does NOT create invoices or invoice lines in the database.
+    """
+    debug_dir = os.path.join("data", "debug")
+    os.makedirs(debug_dir, exist_ok=True)
+
+    filename = file.filename or "debug_invoice.pdf"
+    file_path = os.path.join(debug_dir, filename)
+
+    with open(file_path, "wb") as f:
+        f.write(await file.read())
+
+    lines = await ollama_parse_invoice_pdf(file_path)
+
+    return {
+        "file_path": file_path,
+        "line_count": len(lines),
+        "lines": lines,
+    }

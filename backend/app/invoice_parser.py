@@ -1,155 +1,136 @@
 from __future__ import annotations
 
-from datetime import datetime, date, timedelta
-from typing import List, Dict
-import re
-
+from typing import Any, Dict, List
 from pypdf import PdfReader
-from .models import RoleType
+import json
+from datetime import datetime
+
+from .ollama_client import call_ollama
 
 
-WEEKDAY_NAMES = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]
+def _extract_pdf_text(file_path: str) -> str:
+    """Extract all text from a PDF as a single string."""
+    reader = PdfReader(file_path)
+    parts: List[str] = []
+    for page in reader.pages:
+        txt = page.extract_text() or ""
+        parts.append(txt)
+    return "\n\n".join(parts)
 
 
-def _parse_date_range(text: str) -> list[date]:
+def _normalise_date(value: str | None) -> str | None:
     """
-    Parse a line like:
-      "for works completed between the 17th and 21st of November 2025"
-    and return a list of dates in that range.
+    Try to normalise a date to ISO format YYYY-MM-DD.
+    Returns None if we can't be sure.
     """
-    pattern = re.compile(
-        r"between the (\d{1,2})(?:st|nd|rd|th)? and (\d{1,2})(?:st|nd|rd|th)? of ([A-Za-z]+) (\d{4})",
-        re.IGNORECASE,
-    )
-    m = pattern.search(text)
-    if not m:
-        return []
-
-    start_day = int(m.group(1))
-    end_day = int(m.group(2))
-    month_name = m.group(3)
-    year = int(m.group(4))
-
-    month_num = datetime.strptime(month_name, "%B").month
-    start_date = date(year, month_num, start_day)
-    end_date = date(year, month_num, end_day)
-
-    result = []
-    current = start_date
-    while current <= end_date:
-        result.append(current)
-        current += timedelta(days=1)
-    return result
-
-
-def _map_weekday_to_date_in_range(weekday_name: str, date_range: list[date]) -> date | None:
-    weekday_name = weekday_name.lower()
-    for d in date_range:
-        if d.strftime("%A").lower() == weekday_name:
-            return d
+    if not value:
+        return None
+    value = value.strip()
+    # Try a few common formats
+    for fmt in ("%Y-%m-%d", "%d/%m/%Y", "%d-%m-%Y", "%d.%m.%Y", "%d %b %Y"):
+        try:
+            return datetime.strptime(value, fmt).date().isoformat()
+        except ValueError:
+            continue
     return None
 
 
-async def parse_invoice_pdf(file_path: str) -> List[Dict]:
+async def parse_invoice_pdf(file_path: str) -> List[Dict[str, Any]]:
     """
-    Parse an invoice like the one provided:
-      - Lines such as:
-            Monday yard
-            9 17.00 153.00
+    Use Ollama to parse an invoice PDF into line items.
 
-            Tuesday drive hours
-            Cardiff redrow homes
-            3 17.00 51.00
-
-    Output: list of dicts with the fields required to create InvoiceLine entries.
+    Returns a list of dicts ready to be passed into models.InvoiceLine()
+    (minus the invoice_id, which upload handler will add).
     """
-    reader = PdfReader(file_path)
-    full_text = ""
-    for page in reader.pages:
-        full_text += page.extract_text() + "\n"
+    raw_text = _extract_pdf_text(file_path)
 
-    lines = [ln.strip() for ln in full_text.splitlines() if ln.strip()]
+    # You can tweak this prompt to reflect your real subcontractor invoice layout
+    prompt = f"""
+You are helping to extract structured data from subcontractor invoices.
 
-    # Build date range from header
-    date_range = _parse_date_range(full_text)
+The text below is the FULL CONTENTS of a PDF invoice sent to our company.
+Your job is to read it carefully and return the WORK LINES as JSON.
 
-    parsed_lines: List[Dict] = []
+We care about:
+- work_date: date of the work (not the invoice date), in format YYYY-MM-DD if possible
+- site_location: short text name/description of the site or job
+- role: the role of the person/plant (e.g. "Road sweeper + driver", "Second man", "HGV driver")
+- hours_on_site: number of hours physically on site (can be decimal)
+- hours_travel: number of hours travelling to/from site (can be decimal)
+- hours_yard: number of hours in the yard/prep (can be decimal)
+- rate_per_hour: currency-agnostic hourly rate for the main portion of the line
+- line_total: total amount charged for this line
 
-    desc_buffer: List[str] = []
+If something is not stated, make your best guess from context OR use 0.
 
-    number_line_regex = re.compile(
-        r"^(?P<qty>\d+(?:\.\d+)?)\s+(?P<unit>\d+(?:\.\d+)?)\s+(?P<amount>\d+(?:\.\d+)?)$"
-    )
+Return ONLY valid JSON in this structure (no explanation text):
 
-    for ln in lines:
-        m = number_line_regex.match(ln)
-        if m:
-            # We've hit a "qty rate amount" row -> close off a description block
-            if not desc_buffer:
-                continue
+{{
+  "lines": [
+    {{
+      "work_date": "YYYY-MM-DD or null",
+      "site_location": "string",
+      "role": "string",
+      "hours_on_site": 0.0,
+      "hours_travel": 0.0,
+      "hours_yard": 0.0,
+      "rate_per_hour": 0.0,
+      "line_total": 0.0
+    }}
+  ]
+}}
 
-            desc_text = " ".join(desc_buffer)
-            desc_lower = desc_text.lower()
+If there are no clear work lines, return: {{"lines": []}}.
 
-            qty = float(m.group("qty"))
-            unit_price = float(m.group("unit"))
-            amount = float(m.group("amount"))
+INVOICE TEXT STARTS BELOW:
+\"\"\"{raw_text}\"\"\"
+INVOICE TEXT ENDS.
+"""
 
-            # Determine role & hours
-            role = RoleType.MAIN_OPERATOR
-            hours_on_site = 0.0
-            hours_travel = 0.0
-            hours_yard = 0.0
+    try:
+        response_text = await call_ollama(prompt)
+    except Exception:
+        # If Ollama is down, return empty and let humans enter manually
+        return []
 
-            if "yard" in desc_lower:
-                role = RoleType.YARD
-                hours_yard = qty
-            elif "drive" in desc_lower or "driver" in desc_lower:
-                role = RoleType.TRAVEL_DRIVER
-                hours_travel = qty
-            elif "passenger" in desc_lower:
-                role = RoleType.TRAVEL_PASSENGER
-                hours_travel = qty
-            else:
-                # default to main operator work hours
-                role = RoleType.MAIN_OPERATOR
-                hours_on_site = qty
+    try:
+        data = json.loads(response_text)
+    except json.JSONDecodeError:
+        # Model hallucinated extra text or invalid JSON; safest is empty.
+        return []
 
-            # Determine site location:
-            # if multiple description lines, assume last line is the location.
-            if len(desc_buffer) > 1:
-                site_location = desc_buffer[-1]
-            else:
-                site_location = desc_buffer[0]
+    raw_lines = data.get("lines", []) or []
+    parsed_lines: List[Dict[str, Any]] = []
 
-            # Extract weekday token to map to actual date in the range
-            weekday_in_desc = None
-            for wd in WEEKDAY_NAMES:
-                if desc_buffer[0].split()[0].lower().startswith(wd[:3]):
-                    weekday_in_desc = wd
-                    break
+    for raw in raw_lines:
+        # Defensive parsing with defaults
+        work_date = _normalise_date(raw.get("work_date")) if isinstance(raw, dict) else None
 
-            if date_range and weekday_in_desc:
-                work_date = _map_weekday_to_date_in_range(weekday_in_desc, date_range) or date.today()
-            else:
-                work_date = date.today()
+        def _num(key: str) -> float:
+            try:
+                val = raw.get(key, 0)  # type: ignore[arg-type]
+                return float(val)
+            except Exception:
+                return 0.0
 
-            parsed_lines.append(
-                {
-                    "work_date": work_date,
-                    "site_location": site_location,
-                    "role": role,
-                    "hours_on_site": hours_on_site,
-                    "hours_travel": hours_travel,
-                    "hours_yard": hours_yard,
-                    "rate_per_hour": unit_price,
-                    "line_total": amount,
-                }
-            )
+        line: Dict[str, Any] = {
+            "work_date": work_date,
+            "site_location": (raw.get("site_location") or "").strip() if isinstance(raw, dict) else "",
+            "role": (raw.get("role") or "").strip() if isinstance(raw, dict) else "",
+            "hours_on_site": _num("hours_on_site"),
+            "hours_travel": _num("hours_travel"),
+            "hours_yard": _num("hours_yard"),
+            "rate_per_hour": _num("rate_per_hour"),
+            "line_total": _num("line_total"),
+            # Matching-related fields – set conservative defaults, matching
+            # logic can later update these.
+            "match_status": "NEEDS_REVIEW",
+            "match_score": 0.0,
+            "match_notes": "Parsed automatically from invoice using Ollama; review required.",
+            "jobsheet_id": None,
+            "yard_record_id": None,
+        }
 
-            desc_buffer = []
-        else:
-            # keep building description
-            desc_buffer.append(ln)
+        parsed_lines.append(line)
 
     return parsed_lines

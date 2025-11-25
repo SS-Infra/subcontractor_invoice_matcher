@@ -8,11 +8,18 @@ services:
       - "8000:8000"
     environment:
       - DATABASE_URL=sqlite+aiosqlite:///./data/db.sqlite3
-      - OLLAMA_BASE_URL=http://192.168.10.9:11434
+
+      # IMPORTANT: replace with the real ollama container name
+      - OLLAMA_BASE_URL=http://ollama:11434
+
       - OLLAMA_MODEL=llama3
     volumes:
       - backend_data:/app/data
     restart: unless-stopped
+
+    networks:
+      - default
+      - ai_net     # CORRECT NAME
 
   frontend:
     build: ./frontend
@@ -25,5 +32,12 @@ services:
       - backend
     restart: unless-stopped
 
+    networks:
+      - default
+
 volumes:
   backend_data:
+
+networks:
+  ai_net:
+    external: true

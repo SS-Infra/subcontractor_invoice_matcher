@@ -1,12 +1,24 @@
-FROM node:22-alpine
+FROM node:20-alpine AS build
 
 WORKDIR /app
 
-COPY package.json package-lock.json* ./
+# Install deps
+COPY package*.json ./
 RUN npm install
 
+# Copy source and build
 COPY . .
+RUN npm run build
+
+# ---- Runtime image ----
+FROM node:20-alpine
+
+WORKDIR /app
+
+COPY --from=build /app/dist ./dist
+COPY package*.json ./
 
 EXPOSE 5173
 
-CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0", "--port", "5173"]
+# Serve built app with Vite preview
+CMD ["npm", "run", "preview", "--", "--host", "0.0.0.0", "--port", "5173"]

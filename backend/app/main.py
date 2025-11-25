@@ -18,7 +18,7 @@ from sqlalchemy import select
 
 from .database import Base, engine, get_db
 from . import models, schemas
-from .invoice_parser import parse_invoice_pdf as ollama_parse_invoice_pdf  # <-- ONLY used by debug endpoint
+from .invoice_parser import parse_invoice_pdf as ollama_parse_invoice_pdf  # used only by debug endpoint
 
 
 app = FastAPI(title="Subcontractor Invoice Matcher")
@@ -116,13 +116,14 @@ async def upload_invoice(
     await run_matching_for_invoice(db, invoice.id)
     await db.refresh(invoice)
 
+    # IMPORTANT: don't touch invoice.lines here (async lazy-load causes MissingGreenlet)
     return schemas.InvoiceRead(
         id=invoice.id,
         invoice_number=invoice.invoice_number,
         invoice_date=invoice.invoice_date,
         total_amount=invoice.total_amount,
         subcontractor_name=subcontractor.name if invoice.subcontractor else "",
-        lines=invoice.lines,
+        lines=[],  # no lines yet; we'll wire this properly when we load them explicitly
     )
 
 
@@ -142,7 +143,7 @@ async def list_invoices(db: AsyncSession = Depends(get_db)) -> List[schemas.Invo
                 subcontractor_name=inv.subcontractor.name
                 if inv.subcontractor
                 else "",
-                lines=inv.lines,
+                lines=[],  # same reason: avoid async lazy-load for now
             )
         )
     return output

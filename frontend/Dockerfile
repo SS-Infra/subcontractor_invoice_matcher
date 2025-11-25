@@ -1,24 +1,32 @@
-FROM node:20-alpine AS build
+# --- Build stage ---
+FROM node:18-alpine AS builder
 
 WORKDIR /app
 
-# Install deps
+# Copy package files first
 COPY package*.json ./
-RUN npm install
 
-# Copy source and build
+# Install dependencies cleanly
+RUN npm ci || npm install
+
+# Copy the rest of the source
 COPY . .
+
+# Build
 RUN npm run build
 
-# ---- Runtime image ----
-FROM node:20-alpine
+# --- Production stage ---
+FROM node:18-alpine
 
 WORKDIR /app
 
-COPY --from=build /app/dist ./dist
+# Copy built assets only
+COPY --from=builder /app/dist ./dist
+
+# Install only what's required to run vite preview
 COPY package*.json ./
+RUN npm install --omit=dev
 
 EXPOSE 5173
 
-# Serve built app with Vite preview
 CMD ["npm", "run", "preview", "--", "--host", "0.0.0.0", "--port", "5173"]

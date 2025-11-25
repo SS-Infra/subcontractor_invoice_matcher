@@ -1,6 +1,8 @@
+// Simple API helper + types for the frontend
+
 export interface InvoiceLine {
   id: number;
-  work_date: string;
+  work_date: string | null;
   site_location: string;
   role: string;
   hours_on_site: number;
@@ -29,17 +31,11 @@ export interface Operator {
   name: string;
   base_rate: number;
   travel_rate: number;
+  yard_rate: number; // NEW
   has_hgv: boolean;
   notes: string;
 }
 
-/**
- * API base URL
- *
- * - By default it uses the same host the frontend is loaded from, but with port 8000.
- *   e.g. if you open http://192.168.10.50:5173 it will call http://192.168.10.50:8000
- * - You can override it with VITE_API_BASE in the frontend env if needed.
- */
 const guessedBase = window.location.origin.replace(/:\d+$/, ":8000");
 const API_BASE =
   (import.meta as any).env?.VITE_API_BASE || guessedBase;
@@ -62,16 +58,20 @@ export async function uploadInvoice(
     method: "POST",
     body: formData,
   });
+
   if (!res.ok) {
-    throw new Error(`Upload failed: ${res.status}`);
+    const text = await res.text();
+    throw new Error(`Upload failed (${res.status}): ${text}`);
   }
+
   return res.json();
 }
 
 export async function listInvoices(): Promise<Invoice[]> {
   const res = await fetch(`${API_BASE}/invoices`);
   if (!res.ok) {
-    throw new Error(`Failed to fetch invoices: ${res.status}`);
+    const text = await res.text();
+    throw new Error(`Failed to fetch invoices (${res.status}): ${text}`);
   }
   return res.json();
 }
@@ -81,7 +81,8 @@ export async function listInvoices(): Promise<Invoice[]> {
 export async function listOperators(): Promise<Operator[]> {
   const res = await fetch(`${API_BASE}/operators`);
   if (!res.ok) {
-    throw new Error(`Failed to fetch operators: ${res.status}`);
+    const text = await res.text();
+    throw new Error(`Failed to fetch operators (${res.status}): ${text}`);
   }
   return res.json();
 }
@@ -94,10 +95,12 @@ export async function createOperator(
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
   });
+
   if (!res.ok) {
     const text = await res.text();
-    throw new Error(`Failed to create operator: ${res.status} ${text}`);
+    throw new Error(`Failed to create operator (${res.status}): ${text}`);
   }
+
   return res.json();
 }
 
@@ -110,9 +113,11 @@ export async function updateOperator(
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
   });
+
   if (!res.ok) {
     const text = await res.text();
-    throw new Error(`Failed to update operator: ${res.status} ${text}`);
+    throw new Error(`Failed to update operator (${res.status}): ${text}`);
   }
+
   return res.json();
 }

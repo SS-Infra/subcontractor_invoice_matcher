@@ -4,6 +4,7 @@ import os
 from datetime import datetime
 from typing import List
 
+import httpx
 from fastapi import (
     FastAPI,
     Depends,
@@ -21,6 +22,10 @@ from . import models, schemas
 from .invoice_parser import parse_invoice_pdf as ollama_parse_invoice_pdf  # used only by debug endpoint
 
 
+# -------------------------------------------------------------------
+# App setup
+# -------------------------------------------------------------------
+
 app = FastAPI(title="Subcontractor Invoice Matcher")
 
 app.add_middleware(
@@ -36,6 +41,11 @@ app.add_middleware(
 async def on_startup() -> None:
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+
+
+# Ollama config (used by debug test)
+OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
+OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "llama3")
 
 
 # -------------------------------------------------------------------
@@ -70,14 +80,20 @@ async def upload_invoice(
     file: UploadFile = File(...),
     db: AsyncSession = Depends(get_db),
 ) -> schemas.InvoiceRead:
+    """
+    Upload an invoice PDF and create the invoice record.
+    Parsing + matching is currently stubbed.
+    """
 
     upload_dir = os.path.join("data", "uploads")
     os.makedirs(upload_dir, exist_ok=True)
     file_path = os.path.join(upload_dir, file.filename)
 
+    # Save the uploaded file
     with open(file_path, "wb") as f:
         f.write(await file.read())
 
+    # Ensure subcontractor exists
     result = await db.execute(
         select(models.Subcontractor).where(
             models.Subcontractor.name == subcontractor_name
@@ -89,11 +105,13 @@ async def upload_invoice(
         db.add(subcontractor)
         await db.flush()
 
+    # Parse date – expect ISO format from frontend
     try:
         inv_date = datetime.fromisoformat(invoice_date).date()
     except ValueError:
         raise HTTPException(status_code=400, detail="Invalid invoice_date format")
 
+    # Create invoice
     invoice = models.Invoice(
         subcontractor_id=subcontractor.id,
         invoice_number=invoice_number,
@@ -113,17 +131,18 @@ async def upload_invoice(
     await db.commit()
     await db.refresh(invoice)
 
+    # Future: run matching
     await run_matching_for_invoice(db, invoice.id)
     await db.refresh(invoice)
 
-    # IMPORTANT: don't touch invoice.lines here (async lazy-load causes MissingGreenlet)
+    # IMPORTANT: do NOT touch invoice.lines here (async lazy-load causes MissingGreenlet)
     return schemas.InvoiceRead(
         id=invoice.id,
         invoice_number=invoice.invoice_number,
         invoice_date=invoice.invoice_date,
         total_amount=invoice.total_amount,
         subcontractor_name=subcontractor.name if invoice.subcontractor else "",
-        lines=[],  # no lines yet; we'll wire this properly when we load them explicitly
+        lines=[],  # we’ll wire this properly once we load lines explicitly
     )
 
 
@@ -143,7 +162,7 @@ async def list_invoices(db: AsyncSession = Depends(get_db)) -> List[schemas.Invo
                 subcontractor_name=inv.subcontractor.name
                 if inv.subcontractor
                 else "",
-                lines=[],  # same reason: avoid async lazy-load for now
+                lines=[],  # avoid async lazy-load of inv.lines for now
             )
         )
     return output
@@ -217,7 +236,7 @@ async def update_operator(
 
 
 # -------------------------------------------------------------------
-# DEBUG ENDPOINT – uses Ollama WITHOUT touching DB
+# DEBUG ENDPOINTS – Ollama integration
 # -------------------------------------------------------------------
 
 
@@ -247,4 +266,44 @@ async def debug_parse_invoice(file: UploadFile = File(...)) -> dict:
         "file_path": file_path,
         "line_count": len(lines),
         "lines": lines,
+    }
+
+
+@app.get("/debug/test-ollama")
+async def debug_test_ollama() -> dict:
+    """
+    Simple connectivity test to Ollama.
+
+    Returns either:
+    - ok: true and a short response from the model, or
+    - HTTP 500 with the error/response from Ollama
+    """
+    url = f"{OLLAMA_BASE_URL.rstrip('/')}/api/generate"
+    payload = {
+        "model": OLLAMA_MODEL,
+        "prompt": "Reply with just the single word: OK",
+        "stream": False,
+    }
+
+    try:
+        async with httpx.AsyncClient(timeout=10) as client:
+            resp = await client.post(url, json=payload)
+    except Exception as exc:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error contacting Ollama at {url}: {exc!r}",
+        )
+
+    if resp.status_code != 200:
+        # Return the raw text so we can see what Ollama said
+        raise HTTPException(
+            status_code=resp.status_code,
+            detail=f"Ollama returned {resp.status_code}: {resp.text}",
+        )
+
+    data = resp.json()
+    return {
+        "ok": True,
+        "model": OLLAMA_MODEL,
+        "ollama_response": (data.get("response") or "").strip(),
     }

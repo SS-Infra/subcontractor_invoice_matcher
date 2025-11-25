@@ -1,97 +1,92 @@
+from __future__ import annotations
+
 from sqlalchemy import (
     Column,
     Integer,
     String,
     Float,
+    Boolean,
     Date,
     ForeignKey,
-    Enum,
     Text,
-    Boolean,
 )
 from sqlalchemy.orm import relationship
+
 from .database import Base
-import enum
-
-
-class RoleType(str, enum.Enum):
-    MAIN_OPERATOR = "main_operator"
-    SECOND_OPERATOR = "second_operator"
-    YARD = "yard"
-    TRAVEL_DRIVER = "travel_driver"
-    TRAVEL_PASSENGER = "travel_passenger"
-
-
-class MatchStatus(str, enum.Enum):
-    MATCHED = "MATCHED"
-    PARTIAL = "PARTIAL_MATCH"
-    REJECTED = "REJECTED"
-    NEEDS_REVIEW = "NEEDS_REVIEW"
 
 
 class Subcontractor(Base):
     __tablename__ = "subcontractors"
+
     id = Column(Integer, primary_key=True, index=True)
-    name = Column(String, unique=True, index=True)
-    email = Column(String, unique=True, nullable=True)
+    name = Column(String(255), unique=True, nullable=False)
 
     invoices = relationship("Invoice", back_populates="subcontractor")
 
 
 class Invoice(Base):
     __tablename__ = "invoices"
+
     id = Column(Integer, primary_key=True, index=True)
-    subcontractor_id = Column(Integer, ForeignKey("subcontractors.id"))
-    invoice_number = Column(String, index=True)
-    invoice_date = Column(Date)
-    file_path = Column(String)
-    total_amount = Column(Float, default=0.0)
+    subcontractor_id = Column(
+      Integer,
+      ForeignKey("subcontractors.id", ondelete="SET NULL"),
+      nullable=True,
+    )
+    invoice_number = Column(String(100), nullable=False)
+    invoice_date = Column(Date, nullable=False)
+    total_amount = Column(Float, nullable=False, default=0.0)
+    file_path = Column(String(500), nullable=False)
 
     subcontractor = relationship("Subcontractor", back_populates="invoices")
-    lines = relationship(
-        "InvoiceLine", back_populates="invoice", cascade="all, delete-orphan"
-    )
+    lines = relationship("InvoiceLine", back_populates="invoice")
 
 
 class InvoiceLine(Base):
     __tablename__ = "invoice_lines"
+
     id = Column(Integer, primary_key=True, index=True)
-    invoice_id = Column(Integer, ForeignKey("invoices.id"))
+    invoice_id = Column(
+      Integer,
+      ForeignKey("invoices.id", ondelete="CASCADE"),
+      nullable=False,
+    )
 
-    work_date = Column(Date, index=True)
-    site_location = Column(String)
-    role = Column(Enum(RoleType))
-    hours_on_site = Column(Float, default=0.0)
-    hours_travel = Column(Float, default=0.0)
-    hours_yard = Column(Float, default=0.0)
-    rate_per_hour = Column(Float)
-    line_total = Column(Float)
+    work_date = Column(Date, nullable=True)
+    site_location = Column(String(255), nullable=False, default="")
+    role = Column(String(255), nullable=False, default="")
 
-    match_status = Column(Enum(MatchStatus), default=MatchStatus.NEEDS_REVIEW)
-    match_score = Column(Float, default=0.0)
-    match_notes = Column(Text, default="")
+    hours_on_site = Column(Float, nullable=False, default=0.0)
+    hours_travel = Column(Float, nullable=False, default=0.0)
+    hours_yard = Column(Float, nullable=False, default=0.0)
 
-    jobsheet_id = Column(String, nullable=True)
-    yard_record_id = Column(String, nullable=True)
+    rate_per_hour = Column(Float, nullable=False, default=0.0)
+    line_total = Column(Float, nullable=False, default=0.0)
+
+    match_status = Column(String(50), nullable=False, default="NEEDS_REVIEW")
+    match_score = Column(Float, nullable=False, default=0.0)
+    match_notes = Column(Text, nullable=False, default="")
+
+    jobsheet_id = Column(String(100), nullable=True)
+    yard_record_id = Column(String(100), nullable=True)
 
     invoice = relationship("Invoice", back_populates="lines")
 
 
 class Operator(Base):
-    """
-    Individual operator / driver with their own pay rates and HGV flag.
-    This is what you'll manage from the web UI.
-    """
-
     __tablename__ = "operators"
 
     id = Column(Integer, primary_key=True, index=True)
-    name = Column(String, unique=True, index=True)
+    name = Column(String(255), unique=True, nullable=False)
 
-    # Base hourly rate for on-site work
-    base_rate = Column(Float, default=25.0)
-    # Travel hourly rate (driver or passenger depending on HGV flag / your rules)
-    travel_rate = Column(Float, default=17.0)
+    # Main on-site rate
+    base_rate = Column(Float, nullable=False)
 
-    has_hgv = Column(Boolean, default=False)
-    notes = Column(Text, default="")
+    # Travel time rate
+    travel_rate = Column(Float, nullable=False)
+
+    # NEW: yard rate when they’re in the yard but not assigned to a job
+    yard_rate = Column(Float, nullable=False, default=17.0)
+
+    has_hgv = Column(Boolean, nullable=False, default=False)
+    notes = Column(String(255), nullable=False, default="")

@@ -1,10 +1,13 @@
+from __future__ import annotations
+
+from datetime import datetime
+import os
+from typing import List
+
 from fastapi import FastAPI, Depends, UploadFile, File, HTTPException, Form
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
-from datetime import datetime
-import os
-from typing import List
 
 from .database import get_db, Base, engine
 from . import models, schemas
@@ -69,7 +72,7 @@ async def upload_invoice(
     db.add(invoice)
     await db.flush()
 
-    # parse PDF into lines (currently stubbed)
+    # parse PDF into lines (currently AI/template based)
     lines_data = await parse_invoice_pdf(file_path)
     for l in lines_data:
         line = models.InvoiceLine(invoice_id=invoice.id, **l)
@@ -78,7 +81,7 @@ async def upload_invoice(
     await db.commit()
     await db.refresh(invoice)
 
-    # run matching (does nothing if no lines)
+    # run matching (stubbed / your own logic)
     await run_matching_for_invoice(db, invoice.id)
     await db.refresh(invoice)
 
@@ -121,50 +124,4 @@ async def list_operators(db: AsyncSession = Depends(get_db)):
     return operators
 
 
-@app.post("/operators", response_model=schemas.OperatorRead)
-async def create_operator(
-    payload: schemas.OperatorCreate, db: AsyncSession = Depends(get_db)
-):
-    # simple uniqueness check
-    result = await db.execute(
-        select(models.Operator).where(models.Operator.name == payload.name)
-    )
-    existing = result.scalar_one_or_none()
-    if existing:
-        raise HTTPException(status_code=400, detail="Operator with that name already exists")
-
-    op = models.Operator(
-        name=payload.name,
-        base_rate=payload.base_rate,
-        travel_rate=payload.travel_rate,
-        has_hgv=payload.has_hgv,
-        notes=payload.notes or "",
-    )
-    db.add(op)
-    await db.commit()
-    await db.refresh(op)
-    return op
-
-
-@app.put("/operators/{operator_id}", response_model=schemas.OperatorRead)
-async def update_operator(
-    operator_id: int, payload: schemas.OperatorUpdate, db: AsyncSession = Depends(get_db)
-):
-    op = await db.get(models.Operator, operator_id)
-    if not op:
-        raise HTTPException(status_code=404, detail="Operator not found")
-
-    if payload.name is not None:
-        op.name = payload.name
-    if payload.base_rate is not None:
-        op.base_rate = payload.base_rate
-    if payload.travel_rate is not None:
-        op.travel_rate = payload.travel_rate
-    if payload.has_hgv is not None:
-        op.has_hgv = payload.has_hgv
-    if payload.notes is not None:
-        op.notes = payload.notes
-
-    await db.commit()
-    await db.refresh(op)
-    return op
+@app.post("/operators", response_model=sche_

@@ -18,7 +18,6 @@ from sqlalchemy import select
 
 from .database import Base, engine, get_db
 from . import models, schemas
-from .invoice_parser import parse_invoice_pdf  # NEW
 
 
 app = FastAPI(title="Subcontractor Invoice Matcher")
@@ -38,9 +37,25 @@ async def on_startup() -> None:
         await conn.run_sync(Base.metadata.create_all)
 
 
-# Stub for future job sheet / Jotform comparison
+# ----- TEMP STUBS (NO OLLAMA CALL HERE) -----
+
+async def parse_invoice_pdf(file_path: str):
+    """
+    TEMP: stub – returns no lines.
+    We’ll wire this to the real Ollama-based parser once the core app is
+    rock-solid again.
+    """
+    return []
+
+
 async def run_matching_for_invoice(db: AsyncSession, invoice_id: int) -> None:
+    """
+    TEMP: stub for future matching logic.
+    """
     return None
+
+
+# ----- INVOICE ENDPOINTS -----
 
 
 @app.post("/invoices/upload", response_model=schemas.InvoiceRead)
@@ -85,7 +100,7 @@ async def upload_invoice(
     db.add(invoice)
     await db.flush()
 
-    # REAL parsing via Ollama-backed parser
+    # STUB: no parsed lines yet
     lines_data = await parse_invoice_pdf(file_path)
     for line_data in lines_data:
         line = models.InvoiceLine(invoice_id=invoice.id, **line_data)
@@ -127,6 +142,9 @@ async def list_invoices(db: AsyncSession = Depends(get_db)) -> List[schemas.Invo
             )
         )
     return output
+
+
+# ----- OPERATOR ENDPOINTS -----
 
 
 @app.get("/operators", response_model=List[schemas.OperatorRead])

@@ -7,19 +7,12 @@ services:
     ports:
       - "8000:8000"
     environment:
-      # Force DB into the persistent data folder
       - DATABASE_URL=sqlite+aiosqlite:///./data/db.sqlite3
+      - OLLAMA_BASE_URL=http://192.168.10.9:11434
+      - OLLAMA_MODEL=llama3
     volumes:
-      # Persist DB + uploaded PDFs
       - backend_data:/app/data
     restart: unless-stopped
-    services:
-  backend:
-    environment:
-      - DATABASE_URL=sqlite+aiosqlite:///./data/db.sqlite3
-      - OLLAMA_BASE_URL=http://192.168.10.9:11434   # <-- change to your Ollama IP:port
-      - OLLAMA_MODEL=llama3                        # <-- or llama3.1, mistral, whatever you use
-
 
   frontend:
     build: ./frontend
@@ -27,9 +20,6 @@ services:
     ports:
       - "5173:5173"
     environment:
-      # Usually not needed now – api.ts guesses based on window.location
-      # but you can uncomment and set explicitly if you want.
-      # - VITE_API_BASE=http://your-hostname-or-ip:8000
       - NODE_ENV=production
     depends_on:
       - backend

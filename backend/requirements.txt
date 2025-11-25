@@ -1,10 +1,9 @@
 fastapi
 uvicorn[standard]
-sqlalchemy[asyncio]
+sqlalchemy
 aiosqlite
-httpx
 pydantic
 pydantic-settings
-python-dotenv
 python-multipart
+httpx
 pypdf

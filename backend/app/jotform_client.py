@@ -4,7 +4,10 @@ from typing import Any, Dict, List, Optional
 
 import httpx
 
-JOTFORM_BASE_URL = "https://api.jotform.com"
+# Allow overriding the base URL for EU accounts etc.
+# Default is the standard US endpoint.
+JOTFORM_BASE_URL = os.getenv("JOTFORM_BASE_URL", "https://api.jotform.com")
+
 STOCK_JOB_FORM_TITLE = "Stock Job Form"
 
 
@@ -39,16 +42,25 @@ async def _jotform_get(path: str, params: Optional[Dict[str, Any]] = None) -> Di
         ) from exc
 
     data = resp.json()
-    # Jotform wraps actual stuff in 'content'
     return data
+
+
+async def get_raw_forms_response() -> Dict[str, Any]:
+    """
+    Return the raw JSON from /user/forms so we can inspect it in debug.
+    """
+    return await _jotform_get("/user/forms")
 
 
 async def get_jotform_forms() -> List[Dict[str, Any]]:
     """
-    Return the list of forms for the account.
+    Return the list of forms for the account (just the 'content' array).
     """
-    data = await _jotform_get("/user/forms")
+    data = await get_raw_forms_response()
     forms = data.get("content") or []
+    # Jotform sometimes returns {} when no forms – normalize to list
+    if isinstance(forms, dict):
+        forms = []
     return forms
 
 
@@ -90,8 +102,9 @@ async def get_stock_job_form_submissions(
         params={
             "limit": limit,
             "offset": offset,
-            # you can also pass 'orderby', 'filter', etc later if needed
         },
     )
     submissions = data.get("content") or []
+    if isinstance(submissions, dict):
+        submissions = []
     return submissions

@@ -20,7 +20,7 @@ from sqlalchemy import select
 from .database import Base, engine, get_db
 from . import models, schemas
 from .invoice_parser import parse_invoice_pdf as ollama_parse_invoice_pdf  # used only by debug endpoint
-
+from .services.travel_estimator import check_travel_time_claim
 
 # -------------------------------------------------------------------
 # App setup

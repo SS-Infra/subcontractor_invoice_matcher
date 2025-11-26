@@ -20,6 +20,7 @@ services:
       # Jotform API key
       - JOTFORM_API_KEY=37586fb2dcfb160e8fbd95ee507793c4
       - JOTFORM_BASE_URL=https://eu-api.jotform.com
+      - JOTFORM_STOCK_JOB_FORM_ID=241095621872357
 
     volumes:
       - backend_data:/app/data

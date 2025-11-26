@@ -21,6 +21,11 @@ from .database import Base, engine, get_db
 from . import models, schemas
 from .invoice_parser import parse_invoice_pdf as ollama_parse_invoice_pdf  # used only by debug endpoint
 from .services.travel_estimator import check_travel_time_claim
+from .jotform_client import (  # NEW
+    get_jotform_forms,
+    get_stock_job_form_submissions,
+    JotformError,
+)
 
 # -------------------------------------------------------------------
 # App setup
@@ -339,3 +344,54 @@ async def debug_test_travel(
         tolerance_hours=tolerance,
     )
     return result
+
+
+# -------------------------------------------------------------------
+# DEBUG ENDPOINTS – Jotform integration
+# -------------------------------------------------------------------
+
+
+@app.get("/debug/jotform/forms")
+async def debug_jotform_forms() -> dict:
+    """
+    List Jotform forms for this account.
+    Useful to confirm we can see 'Stock Job Form'.
+    """
+    try:
+        forms = await get_jotform_forms()
+    except JotformError as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+    return {
+        "count": len(forms),
+        "forms": [
+            {
+                "id": f.get("id"),
+                "title": f.get("title"),
+                "status": f.get("status"),
+                "created_at": f.get("created_at"),
+            }
+            for f in forms
+        ],
+    }
+
+
+@app.get("/debug/jotform/stock-job-submissions")
+async def debug_jotform_stock_job_submissions(limit: int = 10, offset: int = 0) -> dict:
+    """
+    Fetch raw submissions for the 'Stock Job Form'.
+
+    This is a debug endpoint so we can see the exact field structure
+    and then design the ShiftRecord mapping.
+    """
+    try:
+        submissions = await get_stock_job_form_submissions(limit=limit, offset=offset)
+    except JotformError as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+    return {
+        "count": len(submissions),
+        "limit": limit,
+        "offset": offset,
+        "submissions": submissions,
+    }

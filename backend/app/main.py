@@ -21,10 +21,12 @@ from .database import Base, engine, get_db
 from . import models, schemas
 from .invoice_parser import parse_invoice_pdf as ollama_parse_invoice_pdf  # used only by debug endpoint
 from .services.travel_estimator import check_travel_time_claim
-from .jotform_client import (  # NEW
+from .jotform_client import (
     get_jotform_forms,
     get_stock_job_form_submissions,
+    get_raw_forms_response,
     JotformError,
+    JOTFORM_BASE_URL,
 )
 
 # -------------------------------------------------------------------
@@ -355,16 +357,22 @@ async def debug_test_travel(
 async def debug_jotform_forms() -> dict:
     """
     List Jotform forms for this account.
-    Useful to confirm we can see 'Stock Job Form'.
+
+    Returns both a processed view and the raw response so we can see:
+      - base URL in use (US vs EU)
+      - what Jotform is actually sending back
     """
     try:
+        raw = await get_raw_forms_response()
         forms = await get_jotform_forms()
     except JotformError as e:
         raise HTTPException(status_code=500, detail=str(e))
 
     return {
-        "count": len(forms),
-        "forms": [
+        "api_key_present": bool(os.getenv("JOTFORM_API_KEY")),
+        "base_url": JOTFORM_BASE_URL,
+        "processed_count": len(forms),
+        "processed_forms": [
             {
                 "id": f.get("id"),
                 "title": f.get("title"),
@@ -373,6 +381,7 @@ async def debug_jotform_forms() -> dict:
             }
             for f in forms
         ],
+        "raw_response": raw,
     }
 
 

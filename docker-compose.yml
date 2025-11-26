@@ -15,7 +15,10 @@ services:
       - OLLAMA_MODEL=llama3.1:8b
 
       # OpenRouteService API key (no '=' in name)
-      - OPENROUTESERVICE_API_KEY=eyJvcmciOiI1YjNjZTM1OTc4NTExMTAwMDFjZjYyNDgiLCJpZCI6IjU5ZjY3MjE3OWE5MTQ4MjJhODQzYmQzNGRhMGU4NjRiIiwiaCI6Im11cm11cjY0In0=
+      - OPENROUTESERVICE_API_KEY=YOUR_REAL_ORS_KEY_HERE
+
+      # Jotform API key
+      - JOTFORM_API_KEY=37586fb2dcfb160e8fbd95ee507793c4
 
     volumes:
       - backend_data:/app/data

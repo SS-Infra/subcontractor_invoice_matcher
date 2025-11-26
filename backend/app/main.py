@@ -307,3 +307,29 @@ async def debug_test_ollama() -> dict:
         "model": OLLAMA_MODEL,
         "ollama_response": (data.get("response") or "").strip(),
     }
+    @app.get("/debug/test-travel", summary="Debug travel-time estimation")
+async def debug_test_travel(
+    postcode: str,
+    claimed: float = 0.0,
+    tolerance: float = 1.0,
+):
+    """
+    Quick sanity check for the OpenRouteService travel-time integration.
+
+    Example:
+      /debug/test-travel?postcode=BS1+4DJ&claimed=6&tolerance=1
+
+    Returns a JSON object showing:
+      - estimated_hours: ORS estimate (one-way, hours)
+      - claimed_hours: what you pass in as `claimed`
+      - delta_hours: claimed - estimated
+      - ok: True if |delta| <= tolerance
+      - debug: text with routing details or error info
+    """
+    result = check_travel_time_claim(
+        destination_postcode=postcode,
+        claimed_travel_hours=claimed,
+        tolerance_hours=tolerance,
+    )
+    return result
+

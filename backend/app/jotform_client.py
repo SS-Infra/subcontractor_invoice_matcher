@@ -1,114 +1,112 @@
 import os
-from functools import lru_cache
-from typing import Any, Dict, List, Optional
-
 import httpx
-
-# You can override this via env:
-#   JOTFORM_BASE_URL=https://eu-api.jotform.com
-JOTFORM_BASE_URL = os.getenv("JOTFORM_BASE_URL", "https://api.jotform.com")
-
-STOCK_JOB_FORM_TITLE = "Stock Job Form"
 
 
 class JotformError(Exception):
-    """Custom error type for Jotform-related issues."""
+    """Raised when Jotform API returns any error."""
     pass
 
 
-@lru_cache(maxsize=1)
-def get_jotform_api_key() -> str:
-    api_key = os.getenv("JOTFORM_API_KEY")
-    if not api_key:
+# Load environment variables
+JOTFORM_API_KEY = os.getenv("JOTFORM_API_KEY", "").strip()
+JOTFORM_BASE_URL = os.getenv("JOTFORM_BASE_URL", "https://api.jotform.com").strip()
+STOCK_JOB_FORM_ID = os.getenv("JOTFORM_STOCK_JOB_FORM_ID", "").strip()
+
+
+def require_api_key():
+    """Ensure the API key is configured."""
+    if not JOTFORM_API_KEY:
         raise JotformError(
-            "JOTFORM_API_KEY is not set. "
-            "Set it on the backend container environment."
+            "JOTFORM_API_KEY is not set. Put it in your backend container environment variables."
         )
-    return api_key
 
 
-async def _jotform_get(path: str, params: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
-    api_key = get_jotform_api_key()
-    params = params or {}
-    params["apiKey"] = api_key
+# -----------------------------------------------------------
+# Base GET wrapper
+# -----------------------------------------------------------
 
-    url = f"{JOTFORM_BASE_URL.rstrip('/')}/{path.lstrip('/')}"
+async def jotform_get(path: str, params: dict | None = None) -> dict:
+    """
+    Generic GET request wrapper for Jotform's API.
+    Handles errors and returns JSON.
+    """
+    require_api_key()
+
+    base = (JOTFORM_BASE_URL or "https://api.jotform.com").rstrip("/")
+    url = f"{base}{path}"
+
+    headers = {
+        "Accept": "application/json",
+    }
+
+    if params is None:
+        params = {}
+
+    params["apiKey"] = JOTFORM_API_KEY  # Always include API key
+
     async with httpx.AsyncClient(timeout=15) as client:
-        resp = await client.get(url, params=params)
+        try:
+            resp = await client.get(url, params=params)
+        except Exception as exc:
+            raise JotformError(f"HTTP error calling Jotform: {exc!r}")
 
-    try:
-        resp.raise_for_status()
-    except httpx.HTTPStatusError as exc:
+    if resp.status_code != 200:
         raise JotformError(
-            f"Jotform API error {exc.response.status_code}: {exc.response.text}"
-        ) from exc
+            f"Jotform returned HTTP {resp.status_code}: {resp.text}"
+        )
 
-    return resp.json()
+    data = resp.json()
+
+    if data.get("responseCode") != 200:
+        raise JotformError(
+            f"Jotform API error: {data.get('message')} ({data})"
+        )
+
+    return data
 
 
-# -------------------------
-# Public helpers
-# -------------------------
+# -----------------------------------------------------------
+# List all forms the account can see
+# -----------------------------------------------------------
 
-
-async def get_raw_forms_response() -> Dict[str, Any]:
+async def get_jotform_forms() -> list[dict]:
     """
-    Raw /user/forms payload from Jotform.
-    Useful for debugging (we surface this in /debug/jotform/forms).
+    Returns a list of forms visible to this API key.
     """
-    return await _jotform_get("/user/forms")
 
+    data = await jotform_get("/user/forms")
 
-async def get_jotform_forms() -> List[Dict[str, Any]]:
-    """
-    Return a normalized list of forms for this account.
-    """
-    data = await get_raw_forms_response()
-
-    # Jotform's "content" key holds forms
-    forms = data.get("content") or []
-
-    # Sometimes content can be {} if empty – normalize to list
-    if isinstance(forms, dict):
+    forms = data.get("content", [])
+    if not isinstance(forms, list):
         forms = []
 
     return forms
 
 
-async def get_form_id_by_title(title: str) -> str:
-    """
-    Find a form ID by its exact title.
-    Raises JotformError if not found.
-    """
-    forms = await get_jotform_forms()
-    for f in forms:
-        if f.get("title") == title:
-            form_id = f.get("id")
-            if form_id:
-                return form_id
-
-    raise JotformError(f"Form with title '{title}' not found in Jotform account.")
-
-
-async def get_stock_job_form_id() -> str:
-    """
-    Convenience helper for your 'Stock Job Form'.
-    """
-    return await get_form_id_by_title(STOCK_JOB_FORM_TITLE)
-
+# -----------------------------------------------------------
+# Fetch submissions for the specific “Stock Job Form”
+# -----------------------------------------------------------
 
 async def get_stock_job_form_submissions(
-    limit: int = 50,
+    limit: int = 20,
     offset: int = 0,
-) -> List[Dict[str, Any]]:
+) -> list[dict]:
     """
-    Fetch submissions for 'Stock Job Form'.
-    Raw Jotform payload – we’ll map into ShiftRecords later.
-    """
-    form_id = await get_stock_job_form_id()
-    path = f"/form/{form_id}/submissions"
+    Fetch raw submissions for the 'Stock Job Form'.
+    These are not processed - raw JSON from Jotform.
 
-    data = await _jotform_get(
+    Requires env var:
+        JOTFORM_STOCK_JOB_FORM_ID="241095621872357"
+    """
+
+    require_api_key()
+
+    if not STOCK_JOB_FORM_ID:
+        raise JotformError("JOTFORM_STOCK_JOB_FORM_ID is not set.")
+
+    path = f"/form/{STOCK_JOB_FORM_ID}/submissions"
+
+    data = await jotform_get(
         path,
         params={
             "limit": limit,
@@ -116,8 +114,8 @@ async def get_stock_job_form_submissions(
         },
     )
 
-    submissions = data.get("content") or []
-    if isinstance(submissions, dict):
+    submissions = data.get("content", [])
+    if not isinstance(submissions, list):
         submissions = []
 
     return submissions

@@ -19,26 +19,37 @@ DEPOT_LAT = 51.833546
 DEPOT_COORDS = (DEPOT_LON, DEPOT_LAT)  # (lon, lat)
 
 # -------------------------------------------------------------------
-# Avoiding Severn crossings (M4 + M48 bridges)
+# Avoiding Severn crossings (M4 + M48 bridges) via small MultiPolygon
 # -------------------------------------------------------------------
-# We'll define a bounding polygon around the Severn estuary crossing
-# area so that the route cannot cross the bridges.
+# We'll define two small rectangles around each bridge crossing:
 #
-# This polygon is deliberately a bit "chunky" so it comfortably
-# covers both the Severn Bridge (M48) and Prince of Wales Bridge (M4),
-# but not so large that it blocks the Gloucester route.
+# 1) Severn Bridge (M48) approx: 51.611, -2.639
+# 2) Prince of Wales Bridge (M4) approx: 51.571, -2.769
 #
-# Coordinates are in (lon, lat) and must form a closed ring.
-AVOID_SEVERN_POLYGON = {
-    "type": "Polygon",
-    "coordinates": [[
-        # West of the bridges
-        [-3.20, 51.55],
-        [-2.60, 51.55],
-        [-2.60, 51.70],
-        [-3.20, 51.70],
-        [-3.20, 51.55],  # close the polygon
-    ]]
+# Each rectangle is ~0.06° x 0.06° which is comfortably under
+# ORS's 2.0E8 m² area limit per polygon.
+#
+# GeoJSON MultiPolygon, coordinates are [[[lon, lat], ...]] per polygon.
+AVOID_SEVERN_MULTIPOLYGON = {
+    "type": "MultiPolygon",
+    "coordinates": [
+        # M48 Severn Bridge box
+        [[
+            [-2.67, 51.58],
+            [-2.61, 51.58],
+            [-2.61, 51.64],
+            [-2.67, 51.64],
+            [-2.67, 51.58],
+        ]],
+        # M4 Prince of Wales Bridge box
+        [[
+            [-2.80, 51.54],
+            [-2.74, 51.54],
+            [-2.74, 51.60],
+            [-2.80, 51.60],
+            [-2.80, 51.54],
+        ]],
+    ],
 }
 
 
@@ -100,9 +111,8 @@ def estimate_travel_hours_to_postcode(
             coordinates=[DEPOT_COORDS, (dest_lon, dest_lat)],
             profile="driving-car",
             format="json",
-            # This is the key bit: forbid routes through the Severn bridges area
             options={
-                "avoid_polygons": AVOID_SEVERN_POLYGON
+                "avoid_polygons": AVOID_SEVERN_MULTIPOLYGON
             },
         )
 

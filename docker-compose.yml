@@ -12,7 +12,7 @@ services:
       # IMPORTANT: replace with the real ollama container name
       - OLLAMA_BASE_URL=http://ollama:11434
 
-      - OLLAMA_MODEL=llama3
+      - OLLAMA_MODEL=llama3.1:8b
     volumes:
       - backend_data:/app/data
     restart: unless-stopped

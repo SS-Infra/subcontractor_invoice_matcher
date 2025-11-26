@@ -307,7 +307,14 @@ async def debug_test_ollama() -> dict:
         "model": OLLAMA_MODEL,
         "ollama_response": (data.get("response") or "").strip(),
     }
-    @app.get("/debug/test-travel", summary="Debug travel-time estimation")
+
+
+# -------------------------------------------------------------------
+# DEBUG ENDPOINT – Travel-time estimation
+# -------------------------------------------------------------------
+
+
+@app.get("/debug/test-travel", summary="Debug travel-time estimation")
 async def debug_test_travel(
     postcode: str,
     claimed: float = 0.0,
@@ -332,4 +339,3 @@ async def debug_test_travel(
         tolerance_hours=tolerance,
     )
     return result
-

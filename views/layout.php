@@ -10,7 +10,7 @@ $cssV      = @filemtime(BASE_DIR . '/styles.css') ?: time();
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Subcontractor Invoice Matcher</title>
+    <title>OnPoint SE · Invoice Matcher</title>
     <link rel="stylesheet" href="/styles.css?v=<?= (int) $cssV ?>">
 </head>
 <body class="<?= $isLogin ? 'login' : '' ?>">
@@ -20,7 +20,7 @@ $cssV      = @filemtime(BASE_DIR . '/styles.css') ?: time();
     </div>
 <?php else: ?>
     <header class="topnav">
-        <span class="brand"><span class="dot"></span>STOCK</span>
+        <span class="brand">On<span class="dot">Point</span>&nbsp;SE</span>
         <span class="pill">Invoice Matcher</span>
         <span class="spacer"></span>
         <nav class="links">

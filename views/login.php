@@ -3,7 +3,7 @@
 $bodyClass = 'login';
 ?>
 <div class="login-card">
-    <div class="brand"><span class="dot"></span>STOCK</div>
+    <div class="brand">On<span class="dot">Point</span>&nbsp;SE</div>
     <h1>Admin Sign In</h1>
     <p class="subtitle">Sign in with your username and password.</p>
 

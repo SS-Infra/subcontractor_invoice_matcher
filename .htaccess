@@ -1,0 +1,14 @@
+RewriteEngine On
+
+# Block direct access to dotfiles (.env, .git, .htaccess, ...).
+RewriteRule "(^|/)\." - [F]
+
+# Lock down the app's private folders. Even though Apache should never
+# need to serve them, this stops anyone fishing for .php files directly.
+RewriteRule ^(src|views|data)(/|$) - [F]
+
+# Front controller: every request that isn't an existing file or dir
+# (so /styles.css still works) is routed through index.php.
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^ index.php [QSA,L]

@@ -11,12 +11,16 @@ shared PHP hosting (it's deployed on **20i**).
 ## Structure
 
 ```
-public/      Front controller (index.php), .htaccess, CSS
-src/        Application code (auth, db, pdf, rules, invoices, operators,
-            jotform, travel)
-views/      PHP templates (layout, login, invoices, operators)
-data/       SQLite DB and uploaded files (created on first run, gitignored)
-.env        Optional secrets file, loaded by src/bootstrap.php
+index.php    Front controller (lives at the repo root so it Just Works
+             when the doc root is the cloned repo / public_html).
+.htaccess    URL rewriting + access controls.
+styles.css   Single stylesheet.
+src/         Application code (auth, db, pdf, rules, invoices, operators,
+             jotform, travel, jobsheets). Web-blocked via .htaccess.
+views/       PHP templates. Web-blocked via .htaccess.
+data/        SQLite DB and uploaded files. Created on first run.
+             Gitignored and web-blocked.
+.env         Optional secrets file, loaded by src/bootstrap.php.
 ```
 
 ## Running locally
@@ -24,7 +28,7 @@ data/       SQLite DB and uploaded files (created on first run, gitignored)
 Requires PHP 8.1+ with `pdo_sqlite`.
 
 ```bash
-php -S 0.0.0.0:8080 -t public
+php -S 0.0.0.0:8080
 ```
 
 Open <http://localhost:8080>. Default login: **admin / admin123**
@@ -34,26 +38,24 @@ Open <http://localhost:8080>. Default login: **admin / admin123**
 
 1. In the 20i control panel, set the PHP version to **8.1 or newer** and
    confirm `pdo_sqlite` is enabled.
-2. Upload the repository to the hosting account. Two layouts work:
-   - **Recommended:** point the domain's document root at the
-     `public/` directory (Manage Hosting → Web → Directories).
-     Keep `src/`, `views/` and `data/` *above* the web root so the
-     SQLite DB and uploads aren't directly downloadable.
-   - **Or:** copy the contents of `public/` into `public_html/` and put
-     `src/`, `views/` and `data/` next to it. Then edit
-     `public_html/index.php` so the `require` points at the real
-     location of `src/bootstrap.php`.
-3. Create `data/`, `data/uploads/` and `data/debug/`; make them writable
-   by the web user (chmod 775 via the file manager).
-4. Copy `.env.example` to `.env` (outside the web root) and fill in
+2. Clone the repo straight into `public_html` (Git Version Control →
+   Clone a Repository → path `public_html`). Use the HTTPS URL once
+   you've signed in to GitHub; for SSH URLs add 20i's deploy key (View
+   SSH Keys) to the repo on GitHub.
+3. The repo's `.htaccess` does two things automatically:
+   - routes everything through `index.php`,
+   - blocks direct access to `src/`, `views/`, `data/` and dotfiles.
+   No document-root reconfiguration needed.
+4. Copy `.env.example` to `.env` in the repo root and fill in
    `JOTFORM_API_KEY`, `JOTFORM_STOCK_JOB_FORM_ID`, and
-   `OPENROUTESERVICE_API_KEY` if you want those integrations live. Or
-   set them as environment variables in the 20i panel — either works.
-5. Enable Let's Encrypt for the domain.
-6. Change the default password in `src/bootstrap.php` before going live.
-
-`public/.htaccess` already routes everything through `index.php`, so no
-extra server configuration is needed.
+   `OPENROUTESERVICE_API_KEY` if you want those integrations live, or
+   set them as environment variables in the 20i panel.
+5. Make sure `data/`, `data/uploads/` and `data/debug/` are writable
+   by the web user (the app creates them on first request; if that
+   fails on your hosting plan, create them via the file manager with
+   chmod 775).
+6. Enable Let's Encrypt for the domain.
+7. Change the default password in `src/bootstrap.php` before going live.
 
 ## Features
 

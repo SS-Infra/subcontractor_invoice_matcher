@@ -198,6 +198,27 @@ function get_invoice_lines(int $invoiceId): array
     return $stmt->fetchAll();
 }
 
+function invoice_stats(): array
+{
+    $out = [
+        'invoices'     => (int) db()->query('SELECT COUNT(*) FROM invoices')->fetchColumn(),
+        'matched'      => 0,
+        'partial'      => 0,
+        'needs_review' => 0,
+    ];
+    $rows = db()->query(
+        'SELECT match_status, COUNT(*) AS n FROM invoice_lines GROUP BY match_status'
+    )->fetchAll();
+    foreach ($rows as $r) {
+        switch ($r['match_status']) {
+            case 'MATCHED':      $out['matched']      = (int) $r['n']; break;
+            case 'PARTIAL':      $out['partial']      = (int) $r['n']; break;
+            case 'NEEDS_REVIEW': $out['needs_review'] = (int) $r['n']; break;
+        }
+    }
+    return $out;
+}
+
 function delete_invoice(int $id): void
 {
     $inv = get_invoice($id);

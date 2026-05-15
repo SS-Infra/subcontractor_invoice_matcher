@@ -2,28 +2,25 @@
 /** @var ?string $error */
 $bodyClass = 'login';
 ?>
-<div class="card">
-    <h1 class="title" style="font-size:1.6rem;">Subcontractor Invoice Matcher</h1>
-    <p class="lead" style="margin-bottom:1.4rem;">Internal tool. Sign in to upload invoices and manage operator rates.</p>
+<div class="login-card">
+    <div class="brand"><span class="dot"></span>STOCK</div>
+    <h1>Admin Sign In</h1>
+    <p class="subtitle">Sign in with your username and password.</p>
 
     <form method="post" action="/login" class="stack">
-        <label class="field">
-            <span>Username</span>
-            <input type="text" name="username" autocomplete="username" required>
-        </label>
-        <label class="field">
-            <span>Password</span>
-            <input type="password" name="password" autocomplete="current-password" required>
-        </label>
+        <div class="field">
+            <label for="username">Username</label>
+            <input id="username" type="text" name="username" autocomplete="username" required autofocus>
+        </div>
+        <div class="field">
+            <label for="password">Password</label>
+            <input id="password" type="password" name="password" autocomplete="current-password" required>
+        </div>
 
         <?php if ($error): ?>
             <div class="error"><?= h($error) ?></div>
         <?php endif; ?>
 
-        <button type="submit" class="btn">Sign in</button>
-
-        <p style="font-size:0.8rem;color:var(--muted);margin:0;">
-            Default: <strong>admin / admin123</strong> (change in <code>src/bootstrap.php</code>).
-        </p>
+        <button type="submit" class="btn primary btn-block">Sign in</button>
     </form>
 </div>

@@ -1,8 +1,9 @@
 <?php
 /** @var string $__content */
-$activeTab = $activeTab ?? '';
+$reqPath   = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?? '/';
+$activeTab = str_starts_with($reqPath, '/operators') ? 'operators' : 'invoices';
 $flashMsg  = flash();
-$bodyClass = $bodyClass ?? '';
+$isLogin   = ($bodyClass ?? '') === 'login' || str_starts_with($reqPath, '/login');
 ?><!doctype html>
 <html lang="en">
 <head>
@@ -11,31 +12,28 @@ $bodyClass = $bodyClass ?? '';
     <title>Subcontractor Invoice Matcher</title>
     <link rel="stylesheet" href="/styles.css">
 </head>
-<body class="<?= h($bodyClass) ?>">
-<?php if ($bodyClass === 'login'): ?>
-    <div class="login">
+<body class="<?= $isLogin ? 'login' : '' ?>">
+<?php if ($isLogin): ?>
+    <div class="login-wrap">
         <?= $__content ?>
     </div>
 <?php else: ?>
-    <div class="wrap">
-        <header class="app">
-            <div>
-                <h1 class="title">Subcontractor Invoice Matcher</h1>
-                <p class="lead">Upload subcontractor invoices, compare them to job sheets, and manage operator pay settings in one place.</p>
-            </div>
-            <div style="display:flex;flex-direction:column;align-items:flex-end;gap:0.4rem;">
-                <nav class="nav">
-                    <a href="/"          class="<?= $activeTab === 'invoices'  ? 'active' : '' ?>">Invoices</a>
-                    <a href="/operators" class="<?= $activeTab === 'operators' ? 'active' : '' ?>">Operators &amp; Rates</a>
-                </nav>
-                <a href="/logout" style="font-size:0.8rem;color:var(--muted);">Logout</a>
-            </div>
-        </header>
+    <header class="topnav">
+        <span class="brand"><span class="dot"></span>STOCK</span>
+        <span class="pill">Invoice Matcher</span>
+        <span class="spacer"></span>
+        <nav class="links">
+            <a href="/"          class="<?= $activeTab === 'invoices'  ? 'active' : '' ?>">Invoices</a>
+            <a href="/operators" class="<?= $activeTab === 'operators' ? 'active' : '' ?>">Operators</a>
+        </nav>
+        <span class="user-chip">admin</span>
+        <a href="/logout" class="signout">Sign out</a>
+    </header>
 
+    <div class="wrap">
         <?php if ($flashMsg): ?>
             <div class="flash"><?= h($flashMsg) ?></div>
         <?php endif; ?>
-
         <?= $__content ?>
     </div>
 <?php endif; ?>

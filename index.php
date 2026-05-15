@@ -46,6 +46,7 @@ function route(string $method, string $path): void
             'invoices'           => list_invoices(),
             'jobsheet_count'     => jobsheet_count(),
             'jobsheet_last_sync' => jobsheet_last_synced(),
+            'stats'              => invoice_stats(),
         ]);
         return;
     }

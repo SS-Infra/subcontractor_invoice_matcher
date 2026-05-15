@@ -3,16 +3,12 @@
 /** @var array $lines */
 $activeTab = 'invoices';
 
-$badge = function (string $status): string {
-    return match ($status) {
-        'MATCHED' => 'matched',
-        'PARTIAL' => 'partial',
-        default   => 'review',
-    };
+$badge = fn (string $s): string => match ($s) {
+    'MATCHED' => 'matched',
+    'PARTIAL' => 'partial',
+    default   => 'review',
 };
 
-// For each line, fetch the matched jobsheet's postcode + cached travel
-// estimate so we can show "expected" next to "claimed" travel hours.
 $travelInfo = [];
 foreach ($lines as $l) {
     $info = ['postcode' => '', 'expected' => null];
@@ -33,29 +29,27 @@ foreach ($lines as $l) {
     $travelInfo[(int) $l['id']] = $info;
 }
 ?>
-<div class="card">
-    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:1rem;flex-wrap:wrap;">
-        <div>
-            <h2>Invoice <?= h($invoice['invoice_number']) ?></h2>
-            <p class="muted">
-                <?= h($invoice['subcontractor_name'] ?? '—') ?> ·
-                <?= h($invoice['invoice_date']) ?> ·
-                Total <strong>£<?= number_format((float) $invoice['total_amount'], 2) ?></strong>
-            </p>
-        </div>
-        <div class="actions">
-            <a href="/" class="btn ghost">Back</a>
-            <form method="post" action="/invoices/<?= (int) $invoice['id'] ?>/rematch" class="inline-form">
-                <button type="submit" class="btn ghost">Re-run matching</button>
-            </form>
-        </div>
+<div class="page-header">
+    <div>
+        <h1>Invoice <?= h($invoice['invoice_number']) ?></h1>
+        <p>
+            <?= h($invoice['subcontractor_name'] ?? '—') ?>
+            · <?= h($invoice['invoice_date']) ?>
+            · Total <strong>£<?= number_format((float) $invoice['total_amount'], 2) ?></strong>
+        </p>
+    </div>
+    <div class="actions">
+        <a href="/" class="btn">Back</a>
+        <form method="post" action="/invoices/<?= (int) $invoice['id'] ?>/rematch" class="inline-form">
+            <button type="submit" class="btn">Re-run matching</button>
+        </form>
     </div>
 </div>
 
 <div class="card">
     <h2>Lines</h2>
     <?php if (!$lines): ?>
-        <p class="muted">No lines were extracted from this PDF. The file may be image-only or use a layout the parser doesn&apos;t recognise.</p>
+        <p class="muted-inline">No lines were extracted from this PDF. The file may be image-only or use a layout the parser doesn&apos;t recognise.</p>
     <?php else: ?>
         <table class="data">
             <thead>
@@ -64,7 +58,7 @@ foreach ($lines as $l) {
                     <th>Site</th>
                     <th>Role</th>
                     <th>Site h</th>
-                    <th>Travel h (claimed / expected)</th>
+                    <th>Travel (claimed / expected)</th>
                     <th>Yard h</th>
                     <th>Rate</th>
                     <th style="text-align:right;">Total</th>
@@ -74,6 +68,7 @@ foreach ($lines as $l) {
             </thead>
             <tbody>
                 <?php foreach ($lines as $l): ?>
+                    <?php $ti = $travelInfo[(int) $l['id']] ?? null; ?>
                     <tr>
                         <td><?= h($l['work_date'] ?? '') ?></td>
                         <td><?= h($l['site_location']) ?></td>
@@ -81,12 +76,11 @@ foreach ($lines as $l) {
                         <td><?= number_format((float) $l['hours_on_site'], 2) ?></td>
                         <td>
                             <?= number_format((float) $l['hours_travel'], 2) ?>
-                            <?php $ti = $travelInfo[(int) $l['id']] ?? null; ?>
                             <?php if ($ti && $ti['expected'] !== null): ?>
-                                <span style="color:var(--muted);">/ <?= number_format($ti['expected'], 2) ?></span>
-                                <div style="color:var(--muted);font-size:0.72rem;"><?= h($ti['postcode']) ?></div>
+                                <span class="muted-inline"> / <?= number_format($ti['expected'], 2) ?></span>
+                                <div class="kv-line"><?= h($ti['postcode']) ?></div>
                             <?php elseif (!empty($l['jobsheet_id'])): ?>
-                                <div style="color:var(--muted);font-size:0.72rem;">no postcode on job sheet</div>
+                                <div class="kv-line">no postcode on job sheet</div>
                             <?php endif; ?>
                         </td>
                         <td><?= number_format((float) $l['hours_yard'], 2) ?></td>

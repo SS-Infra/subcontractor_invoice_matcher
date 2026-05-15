@@ -114,7 +114,8 @@ function run_matching_for_invoice(int $invoiceId): void
 
     $upd = db()->prepare(
         'UPDATE invoice_lines
-            SET match_status = ?, match_score = ?, match_notes = ?
+            SET match_status = ?, match_score = ?, match_notes = ?,
+                jobsheet_id  = ?
           WHERE id = ?'
     );
 
@@ -130,13 +131,39 @@ function run_matching_for_invoice(int $invoiceId): void
             'match_score'   => 0.0,
             'match_notes'   => '',
         ];
-        $hasJobsheet   = !empty($row['jobsheet_id']);
+
+        // Look up the Jotform job sheet that best fits this line.
+        $jobsheet = find_jobsheet_for_line(
+            $operatorName,
+            $row['work_date'] ?: null,
+            (string) $row['site_location']
+        );
+
+        $jobsheetId    = $jobsheet ? (string) $jobsheet['id'] : null;
+        $hasJobsheet   = $jobsheet !== null;
         $hasYardRecord = !empty($row['yard_record_id']);
-        apply_rules($line, $hasJobsheet, $hasYardRecord, $hasHgv);
+
+        // Travel-time estimate from ORS, cached per postcode.
+        $expected = null;
+        $debug    = '';
+        if ($jobsheet && trim((string) $jobsheet['site_postcode']) !== '') {
+            [$oneWay, $debug] = cached_one_way_hours((string) $jobsheet['site_postcode']);
+            if ($oneWay !== null) {
+                $expected = $oneWay * 2.0;  // round trip
+            }
+        }
+
+        apply_rules($line, $hasJobsheet, $hasYardRecord, $hasHgv, [
+            'expected_round_trip_hours' => $expected,
+            'travel_tolerance'          => TRAVEL_TOLERANCE_HOURS,
+            'travel_debug'              => $debug,
+        ]);
+
         $upd->execute([
             $line['match_status'],
             $line['match_score'],
             $line['match_notes'],
+            $jobsheetId,
             $row['id'],
         ]);
     }

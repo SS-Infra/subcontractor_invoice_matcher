@@ -42,7 +42,11 @@ function route(string $method, string $path): void
 
     // Invoices
     if ($path === '/' && $method === 'GET') {
-        render('invoices_index', ['invoices' => list_invoices()]);
+        render('invoices_index', [
+            'invoices'           => list_invoices(),
+            'jobsheet_count'     => jobsheet_count(),
+            'jobsheet_last_sync' => jobsheet_last_synced(),
+        ]);
         return;
     }
     if ($path === '/invoices/upload' && $method === 'POST') {
@@ -72,6 +76,21 @@ function route(string $method, string $path): void
     if (preg_match('#^/invoices/(\d+)/delete$#', $path, $m) && $method === 'POST') {
         delete_invoice((int) $m[1]);
         flash('Invoice deleted.');
+        redirect('/');
+    }
+    if (preg_match('#^/invoices/(\d+)/rematch$#', $path, $m) && $method === 'POST') {
+        run_matching_for_invoice((int) $m[1]);
+        flash('Re-ran matching.');
+        redirect('/invoices/' . (int) $m[1]);
+    }
+
+    // Jotform sync
+    if ($path === '/jotform/sync' && $method === 'POST') {
+        $summary = sync_jotform_jobsheets();
+        flash(sprintf(
+            'Synced job sheets: +%d new, %d updated, %d skipped (total now %d).',
+            $summary['inserted'], $summary['updated'], $summary['rejected'], $summary['total']
+        ));
         redirect('/');
     }
 

@@ -62,9 +62,15 @@ extra server configuration is needed.
   - rate matches the operator's role,
   - yard hours don't exceed the daily max,
   - on-site hours roughly match the standard shift,
-  - line totals match `hours × rate`.
-- List, view and delete invoices.
+  - line totals match `hours × rate`,
+  - **claimed travel time matches a 2 × OpenRouteService one-way
+    estimate (depot → site) within ±1h, using the site postcode from
+    the matched Jotform job sheet**.
+- List, view and delete invoices, or re-run matching on an existing one.
 - Operator CRUD (name, base rate, travel rate, yard rate, HGV flag, notes).
+- "Sync Jotform" button pulls Stock Job submissions into a local
+  `jobsheets` table so matching is fast and offline-safe. Travel-time
+  estimates are cached per postcode for `TRAVEL_CACHE_TTL_DAYS` days.
 - Debug JSON endpoints:
   - `POST /debug/parse-invoice` – parse a PDF without storing it.
   - `GET  /debug/test-travel?postcode=BS1+4DJ&claimed=6` – ORS travel-time check.
@@ -82,6 +88,27 @@ in the project root:
 | `JOTFORM_API_KEY` | Required for the Jotform debug endpoints. |
 | `JOTFORM_BASE_URL` | Defaults to `https://api.jotform.com`. |
 | `JOTFORM_STOCK_JOB_FORM_ID` | Form id to fetch submissions for. |
+
+## Travel-time matching
+
+Every time an invoice is processed (on upload, or via the "Re-run
+matching" button on the invoice page) each line is paired with the
+Jotform job sheet that:
+
+1. has the same `operator_name` as the invoice's subcontractor, and
+2. has the same `work_date` (with a ±1 day fallback), with site-name
+   token overlap as a tie-breaker.
+
+The matched job sheet's postcode is fed to OpenRouteService (Severn
+crossings avoided) to get a one-way drive time from the depot. The
+invoice's `hours_travel` is then compared against `2 × one-way`. Lines
+outside `TRAVEL_TOLERANCE_HOURS` (default ±1h) are flagged with a
+`Travel mismatch` note and the invoice line drops to `PARTIAL`.
+
+Estimates are cached in `travel_cache` so repeated invoices to the same
+postcode don't re-hit ORS; the cache expires after
+`TRAVEL_CACHE_TTL_DAYS` (default 30 days). Both knobs live in
+`src/bootstrap.php`.
 
 ## PDF parsing
 

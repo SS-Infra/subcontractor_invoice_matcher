@@ -11,8 +11,21 @@ function expected_rate_for_role(string $role, ?bool $hasHgv): float
     return RATES[$role] ?? 0.0;
 }
 
-function apply_rules(array &$line, bool $hasJobsheet, bool $hasYardRecord, ?bool $hasHgv): void
-{
+/**
+ * Apply rule checks to one invoice line.
+ *
+ * $context may include:
+ *   - expected_round_trip_hours: float|null  (2 × ORS one-way)
+ *   - travel_debug: string                   (free-form notes for UI)
+ *   - travel_tolerance:           float
+ */
+function apply_rules(
+    array &$line,
+    bool $hasJobsheet,
+    bool $hasYardRecord,
+    ?bool $hasHgv,
+    array $context = []
+): void {
     $issues = [];
 
     if (!$hasJobsheet && $line['hours_on_site'] > 0) {
@@ -20,6 +33,22 @@ function apply_rules(array &$line, bool $hasJobsheet, bool $hasYardRecord, ?bool
     }
     if ($line['hours_yard'] > 0 && !$hasYardRecord) {
         $issues[] = 'No yard sign-in';
+    }
+
+    // Travel-time check: compare claimed hours_travel (round-trip) against
+    // 2 × ORS one-way estimate ± tolerance.
+    $expected = $context['expected_round_trip_hours'] ?? null;
+    $tol      = $context['travel_tolerance'] ?? TRAVEL_TOLERANCE_HOURS;
+    if ($expected !== null && $line['hours_travel'] > 0) {
+        $delta = $line['hours_travel'] - $expected;
+        if (abs($delta) > $tol) {
+            $issues[] = sprintf(
+                'Travel mismatch: claimed %.2fh, expected %.2fh round-trip (Δ %+.2fh, tol %.1fh)',
+                $line['hours_travel'], $expected, $delta, $tol
+            );
+        }
+    } elseif ($expected === null && $line['hours_travel'] > 0 && $hasJobsheet) {
+        $issues[] = 'Travel: no postcode on matched job sheet';
     }
 
     $expected = expected_rate_for_role($line['role'], $hasHgv);

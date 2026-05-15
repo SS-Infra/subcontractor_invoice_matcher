@@ -51,8 +51,10 @@ const RATES = [
     'travel_driver_non_hgv' => 17.0,
     'travel_passenger'      => 13.0,
 ];
-const YARD_DAY_MAX_HOURS = 9.0;
-const FULL_SHIFT_HOURS   = 8.5;
+const YARD_DAY_MAX_HOURS    = 9.0;
+const FULL_SHIFT_HOURS      = 8.5;
+const TRAVEL_TOLERANCE_HOURS = 1.0;   // round-trip ± this is acceptable
+const TRAVEL_CACHE_TTL_DAYS  = 30;    // re-query ORS after this many days
 
 require_once __DIR__ . '/db.php';
 require_once __DIR__ . '/helpers.php';
@@ -63,3 +65,4 @@ require_once __DIR__ . '/invoices.php';
 require_once __DIR__ . '/operators.php';
 require_once __DIR__ . '/jotform.php';
 require_once __DIR__ . '/travel.php';
+require_once __DIR__ . '/jobsheets.php';

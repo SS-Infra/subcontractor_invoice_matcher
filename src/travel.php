@@ -83,6 +83,62 @@ function estimate_travel_hours(string $postcode): array
     return [$hours, $debug];
 }
 
+function normalise_postcode(string $raw): string
+{
+    $s = strtoupper(preg_replace('/\s+/', ' ', trim($raw)) ?? '');
+    // Squash to a canonical "AA9 9AA" form when we can recognise it.
+    if (preg_match('/^([A-Z]{1,2}\d[A-Z\d]?)\s*(\d[A-Z]{2})$/', $s, $m)) {
+        return $m[1] . ' ' . $m[2];
+    }
+    return $s;
+}
+
+/**
+ * Cached one-way travel-time lookup for a postcode.
+ *
+ * Returns [one_way_hours|null, debug_text, source] where source is
+ * 'cache', 'live' or 'error'. Misses are cached too, so we don't keep
+ * hammering ORS for unroutable postcodes.
+ */
+function cached_one_way_hours(string $postcode, bool $forceRefresh = false): array
+{
+    $pc = normalise_postcode($postcode);
+    if ($pc === '') {
+        return [null, 'Empty postcode', 'error'];
+    }
+
+    if (!$forceRefresh) {
+        $stmt = db()->prepare('SELECT * FROM travel_cache WHERE postcode = ?');
+        $stmt->execute([$pc]);
+        $row = $stmt->fetch();
+        if ($row) {
+            $age = time() - strtotime($row['fetched_at']);
+            if ($age < TRAVEL_CACHE_TTL_DAYS * 86400) {
+                $hours = $row['one_way_hours'] === null ? null : (float) $row['one_way_hours'];
+                return [$hours, (string) $row['debug'], 'cache'];
+            }
+        }
+    }
+
+    try {
+        [$hours, $debug] = estimate_travel_hours($pc);
+    } catch (Throwable $e) {
+        $hours = null;
+        $debug = 'ORS error: ' . $e->getMessage();
+    }
+
+    db()->prepare(
+        'INSERT INTO travel_cache (postcode, one_way_hours, debug, fetched_at)
+         VALUES (?, ?, ?, datetime("now"))
+         ON CONFLICT(postcode) DO UPDATE SET
+            one_way_hours = excluded.one_way_hours,
+            debug         = excluded.debug,
+            fetched_at    = excluded.fetched_at'
+    )->execute([$pc, $hours, $debug]);
+
+    return [$hours, $debug, $hours === null ? 'error' : 'live'];
+}
+
 function check_travel_time_claim(string $postcode, float $claimed, float $tolerance = 1.0): array
 {
     try {

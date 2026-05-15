@@ -56,6 +56,26 @@ function db(): PDO
             has_hgv     INTEGER NOT NULL DEFAULT 0,
             notes       TEXT NOT NULL DEFAULT ''
         );
+
+        CREATE TABLE IF NOT EXISTS jobsheets (
+            id            TEXT PRIMARY KEY,             -- Jotform submission id
+            work_date     TEXT,                         -- ISO yyyy-mm-dd
+            operator_name TEXT NOT NULL DEFAULT '',
+            site_name     TEXT NOT NULL DEFAULT '',
+            site_postcode TEXT NOT NULL DEFAULT '',
+            raw_json      TEXT NOT NULL DEFAULT '',
+            synced_at     TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_jobsheets_match
+            ON jobsheets (operator_name, work_date);
+
+        CREATE TABLE IF NOT EXISTS travel_cache (
+            postcode      TEXT PRIMARY KEY,             -- normalised, uppercase
+            one_way_hours REAL,                         -- null when ORS could not estimate
+            debug         TEXT NOT NULL DEFAULT '',
+            fetched_at    TEXT NOT NULL DEFAULT (datetime('now'))
+        );
     SQL);
 
     return $pdo;

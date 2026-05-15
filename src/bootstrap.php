@@ -20,6 +20,25 @@ foreach ([DATA_DIR, UPLOAD_DIR, DEBUG_DIR] as $d) {
     }
 }
 
+// Load BASE_DIR/.env (KEY=value, one per line, # for comments) into the
+// process environment. Lets 20i users configure secrets via a single file
+// when they can't set env vars in the control panel.
+$envFile = BASE_DIR . '/.env';
+if (is_file($envFile)) {
+    foreach (file($envFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) as $line) {
+        if ($line === '' || $line[0] === '#') {
+            continue;
+        }
+        [$k, $v] = array_pad(explode('=', $line, 2), 2, '');
+        $k = trim($k);
+        $v = trim($v, " \t\"'");
+        if ($k !== '' && getenv($k) === false) {
+            putenv("$k=$v");
+            $_ENV[$k] = $v;
+        }
+    }
+}
+
 const APP_USER = 'admin';
 const APP_PASS = 'admin123';
 

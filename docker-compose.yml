@@ -1,52 +1,20 @@
-version: "3.9"
-
 services:
-  backend:
-    build: ./backend
-    container_name: sim-backend
+  app:
+    build: .
+    container_name: sim-app
     ports:
-      - "8000:8000"
+      - "8080:80"
     environment:
-      - DATABASE_URL=sqlite+aiosqlite:///./data/db.sqlite3
+      # OpenRouteService – travel-time estimation
+      OPENROUTESERVICE_API_KEY: "YOUR_REAL_ORS_KEY_HERE"
 
-      # IMPORTANT: replace with the real ollama container name
-      - OLLAMA_BASE_URL=http://ollama:11434
-
-      - OLLAMA_MODEL=llama3.1:8b
-
-      # OpenRouteService API key (no '=' in name)
-      - OPENROUTESERVICE_API_KEY=YOUR_REAL_ORS_KEY_HERE
-
-      # Jotform API key
-      - JOTFORM_API_KEY=37586fb2dcfb160e8fbd95ee507793c4
-      - JOTFORM_BASE_URL=https://eu-api.jotform.com
-      - JOTFORM_STOCK_JOB_FORM_ID=241095621872357
-
+      # Jotform – stock job form submissions
+      JOTFORM_API_KEY:             ""
+      JOTFORM_BASE_URL:            "https://eu-api.jotform.com"
+      JOTFORM_STOCK_JOB_FORM_ID:   ""
     volumes:
-      - backend_data:/app/data
+      - app_data:/var/www/html/data
     restart: unless-stopped
-
-    networks:
-      - default
-      - ai_net     # CORRECT NAME
-
-  frontend:
-    build: ./frontend
-    container_name: sim-frontend
-    ports:
-      - "5173:5173"
-    environment:
-      - NODE_ENV=production
-    depends_on:
-      - backend
-    restart: unless-stopped
-
-    networks:
-      - default
 
 volumes:
-  backend_data:
-
-networks:
-  ai_net:
-    external: true
+  app_data:

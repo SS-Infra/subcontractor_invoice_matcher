@@ -4,13 +4,14 @@ $reqPath   = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?? '/';
 $activeTab = str_starts_with($reqPath, '/operators') ? 'operators' : 'invoices';
 $flashMsg  = flash();
 $isLogin   = ($bodyClass ?? '') === 'login' || str_starts_with($reqPath, '/login');
+$cssV      = @filemtime(BASE_DIR . '/styles.css') ?: time();
 ?><!doctype html>
 <html lang="en">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Subcontractor Invoice Matcher</title>
-    <link rel="stylesheet" href="/styles.css">
+    <link rel="stylesheet" href="/styles.css?v=<?= (int) $cssV ?>">
 </head>
 <body class="<?= $isLogin ? 'login' : '' ?>">
 <?php if ($isLogin): ?>
